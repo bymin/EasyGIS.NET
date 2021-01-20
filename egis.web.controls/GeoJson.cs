@@ -93,98 +93,98 @@ namespace EGIS.Web.Controls
 
     }
 
-    /// <summary>
-    /// GeoJSON Point
-    /// </summary>
-    public class Point : Geometry
-    {
-        private double x, y;
+    ///// <summary>
+    ///// GeoJSON Point
+    ///// </summary>
+    //public class Point : Geometry
+    //{
+    //    private double x, y;
 
-        public Point(double x, double y)
-        {
-            this.x = x;
-            this.y = y;
-        }
+    //    public Point(double x, double y)
+    //    {
+    //        this.x = x;
+    //        this.y = y;
+    //    }
 
-        public override string type
-        {
-            get { return "Point"; }
-        }
+    //    public override string type
+    //    {
+    //        get { return "Point"; }
+    //    }
 
-        public double[] coordinates
-        {
-            get
-            {
-                return new double[] { x, y };
-            }
-        }
-    }
+    //    public double[] coordinates
+    //    {
+    //        get
+    //        {
+    //            return new double[] { x, y };
+    //        }
+    //    }
+    //}
 
-    /// <summary>
-    /// GeoJSON LineString
-    /// </summary>
-    public class LineString : Geometry
-    {
-        private double[][] coords;
-
-
-        public LineString(EGIS.ShapeFileLib.PointD[] points)
-        {
-            this.coords = new double[points.Length][];
-            for (int n = points.Length - 1; n >= 0; --n)
-            {
-                coords[n] = new double[] { points[n].X, points[n].Y };
-            }
-        }
-
-        public override string type
-        {
-            get { return "LineString"; }
-        }
-
-        public double[][] coordinates
-        {
-            get
-            {
-                return coords;
-            }
-        }
-
-    }
-
-    /// <summary>
-    /// GeoJSON Polygon
-    /// </summary>
-    public class Polygon : Geometry
-    {
-        private double[][] coords;
+    ///// <summary>
+    ///// GeoJSON LineString
+    ///// </summary>
+    //public class LineString : Geometry
+    //{
+    //    private double[][] coords;
 
 
-        public Polygon(EGIS.ShapeFileLib.PointD[] points)
-        {
-            this.coords = new double[points.Length][];
-            for (int n = points.Length - 1; n >= 0; --n)
-            {
-                coords[n] = new double[] { points[n].X, points[n].Y };
-            }
-        }
+    //    public LineString(EGIS.ShapeFileLib.PointD[] points)
+    //    {
+    //        this.coords = new double[points.Length][];
+    //        for (int n = points.Length - 1; n >= 0; --n)
+    //        {
+    //            coords[n] = new double[] { points[n].X, points[n].Y };
+    //        }
+    //    }
 
-        public override string type
-        {
-            get { return "Polygon"; }
-        }
+    //    public override string type
+    //    {
+    //        get { return "LineString"; }
+    //    }
 
-        public List<double[][]> coordinates
-        {
-            get
-            {
-                List<double[][]> coordsList = new List<double[][]>();
-                coordsList.Add(coords);
-                return coordsList;
-            }
-        }
+    //    public double[][] coordinates
+    //    {
+    //        get
+    //        {
+    //            return coords;
+    //        }
+    //    }
 
-    }
+    //}
+
+    ///// <summary>
+    ///// GeoJSON Polygon
+    ///// </summary>
+    //public class Polygon : Geometry
+    //{
+    //    private double[][] coords;
+
+
+    //    public Polygon(EGIS.ShapeFileLib.PointD[] points)
+    //    {
+    //        this.coords = new double[points.Length][];
+    //        for (int n = points.Length - 1; n >= 0; --n)
+    //        {
+    //            coords[n] = new double[] { points[n].X, points[n].Y };
+    //        }
+    //    }
+
+    //    public override string type
+    //    {
+    //        get { return "Polygon"; }
+    //    }
+
+    //    public List<double[][]> coordinates
+    //    {
+    //        get
+    //        {
+    //            List<double[][]> coordsList = new List<double[][]>();
+    //            coordsList.Add(coords);
+    //            return coordsList;
+    //        }
+    //    }
+
+    //}
 
     /// <summary>
     /// GeoJSON equivalent of google.maps.Data.StyleOptions object specification

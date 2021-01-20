@@ -30,7 +30,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Web.Script.Serialization;
 using ThinkGeo.Core;
 
 namespace EGIS.Web.Controls

@@ -167,29 +167,9 @@
     <Content Include="easygis.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EGIS.Controls\EGIS.Controls.csproj">
-      <Project>{eb97525d-0906-4a14-a995-93667b565521}</Project>
-      <Name>EGIS.Controls</Name>
-    </ProjectReference>
     <ProjectReference Include="..\egis.mapbox.vector.tile\EGIS.Mapbox.Vector.Tile.csproj">
       <Project>{7a7cc2d1-b83f-49c7-afa6-076fb85a3958}</Project>
       <Name>EGIS.Mapbox.Vector.Tile</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\EGIS.Projections\EGIS.Projections.csproj">
-      <Project>{9b3d02d0-d57d-4e7d-a04c-9ddcb36f0ce7}</Project>
-      <Name>EGIS.Projections</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\EGIS.ShapeFileLib\EGIS.ShapeFileLib.csproj">
-      <Project>{c89deb9b-4dca-4792-b216-f00808606af7}</Project>
-      <Name>EGIS.ShapeFileLib</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\egis.web.controls\EGIS.Web.Controls.csproj">
-      <Project>{bb6d9d99-d2ea-44c0-8b34-4db5b2e9bcd5}</Project>
-      <Name>EGIS.Web.Controls</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ShapeFileTools\egis.csproj">
-      <Project>{9b44f499-6935-4fd7-8078-4faeeeda1cf4}</Project>
-      <Name>egis</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

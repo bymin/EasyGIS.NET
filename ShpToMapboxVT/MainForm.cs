@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using EGIS.Mapbox.Vector.Tile;
-using EGIS.ShapeFileLib;
 using Microsoft.Data.Sqlite;
 using System.IO;
 using ThinkGeo.Core;
@@ -118,10 +117,12 @@ namespace ShpToMapboxVT
         private void OpenShapeFiles(string filename)
         {
             this.txtInputShapeFile.Text = filename;
-            using (ShapeFile sf = new ShapeFile(filename))
+            ShapeFileFeatureLayer sf = new ShapeFileFeatureLayer(filename);
+            sf.Open();
             {
                 clbSelectedAttributes.Items.Clear();
-                string[] attributeNames = sf.GetAttributeFieldNames();
+                //string[] attributeNames = sf.GetAttributeFieldNames();
+                string[] attributeNames = sf.QueryTools.GetColumns().Select(f => f.ColumnName).ToArray();
                 foreach (string name in attributeNames)
                 {
                     clbSelectedAttributes.Items.Add(name, true);

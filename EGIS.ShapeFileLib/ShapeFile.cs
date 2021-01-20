@@ -1913,13 +1913,13 @@ namespace EGIS.ShapeFileLib
         {
             if (indicies == null) return;
 
-            if (sourceCRS != null && this.CoordinateReferenceSystem != null &&
-                !this.CoordinateReferenceSystem.IsEquivalent(sourceCRS))
-            {
-                //transform rect to the shapefile's coordinates 
-                //rect = ShapeFile.ConvertExtent(rect, sourceCRS, this.CoordinateReferenceSystem);                
-                rect = rect.Transform(sourceCRS, this.CoordinateReferenceSystem);
-            }
+            //if (sourceCRS != null && this.CoordinateReferenceSystem != null &&
+            //    !this.CoordinateReferenceSystem.IsEquivalent(sourceCRS))
+            //{
+            //    //transform rect to the shapefile's coordinates 
+            //    //rect = ShapeFile.ConvertExtent(rect, sourceCRS, this.CoordinateReferenceSystem);                
+            //    rect = rect.Transform(sourceCRS, this.CoordinateReferenceSystem);
+            //}
 
 
             if (!rect.IntersectsWith(this.Extent)) return;

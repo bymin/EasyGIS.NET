@@ -6,8 +6,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using EGIS.Projections;
-using EGIS.ShapeFileLib;
 using Microsoft.Data.Sqlite;
 using ThinkGeo.Core;
 using static ShpToMapboxVT.MetadataTable;
@@ -124,7 +122,8 @@ namespace ShpToMapboxVT
         /// <param name="includedAttributes">List of attributes to export. If null all attributes will be output</param>
         public void Process(string shapeFileName, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
-            using (ShapeFile shapeFile = new ShapeFile(shapeFileName))
+
+            ShapeFileFeatureLayer shapeFile = new ShapeFileFeatureLayer(shapeFileName);
             {
                 string metadataPath = System.IO.Path.Combine(BaseOutputDirectory,
                     System.IO.Path.GetFileNameWithoutExtension(shapeFileName) + "_metadata.json");
@@ -133,13 +132,13 @@ namespace ShpToMapboxVT
 
                 OnStatusMessage(new StatusMessageEventArgs("Output metadata"));
 
-                //is the shapefile using geographic coordinates
-                var wgs84CRS = EGIS.Projections.CoordinateReferenceSystemFactory.Default.GetCRSById(EGIS.Projections.CoordinateReferenceSystemFactory.Wgs84EpsgCode);
+                ////is the shapefile using geographic coordinates
+                //var wgs84CRS = EGIS.Projections.CoordinateReferenceSystemFactory.Default.GetCRSById(EGIS.Projections.CoordinateReferenceSystemFactory.Wgs84EpsgCode);
 
-                string wgs84ShapeFileName = null;
-                ShapeFile wgs84ShapeFile = null;
-                try
-                {
+                //string wgs84ShapeFileName = null;
+                //ShapeFile wgs84ShapeFile = null;
+                //try
+                //{
                     //if (!wgs84CRS.IsEquivalent(shapeFile.CoordinateReferenceSystem))
                     //{
                     //    OnStatusMessage(new StatusMessageEventArgs("Transforming shapefile CRS to Wgs84"));
@@ -160,22 +159,22 @@ namespace ShpToMapboxVT
 
                     //Process(wgs84ShapeFile != null ? wgs84ShapeFile : shapeFile, generator, ExportAttributesToSeparateFile, cancellationToken, includedAttributes);
                     Process(shapeFile, generator, ExportAttributesToSeparateFile, cancellationToken, includedAttributes);
-                }
-                finally
-                {
-                    if (wgs84ShapeFile != null)
-                    {
-                        wgs84ShapeFile.Dispose();
-                        try
-                        {
-                            System.IO.File.Delete(wgs84ShapeFileName);
-                            System.IO.File.Delete(System.IO.Path.ChangeExtension(wgs84ShapeFileName, ".shx"));
-                            System.IO.File.Delete(System.IO.Path.ChangeExtension(wgs84ShapeFileName, ".dbf"));
-                            System.IO.File.Delete(System.IO.Path.ChangeExtension(wgs84ShapeFileName, ".prj"));
-                        }
-                        catch { }
-                    }
-                }
+                //}
+                //finally
+                //{
+                //    if (wgs84ShapeFile != null)
+                //    {
+                //        wgs84ShapeFile.Dispose();
+                //        try
+                //        {
+                //            System.IO.File.Delete(wgs84ShapeFileName);
+                //            System.IO.File.Delete(System.IO.Path.ChangeExtension(wgs84ShapeFileName, ".shx"));
+                //            System.IO.File.Delete(System.IO.Path.ChangeExtension(wgs84ShapeFileName, ".dbf"));
+                //            System.IO.File.Delete(System.IO.Path.ChangeExtension(wgs84ShapeFileName, ".prj"));
+                //        }
+                //        catch { }
+                //    }
+                //}
 
 
             }
@@ -210,7 +209,7 @@ namespace ShpToMapboxVT
             }
         }
 
-        private void Process(EGIS.ShapeFileLib.ShapeFile shapeFile, EGIS.Web.Controls.VectorTileGenerator generator, bool exportAttributesToSeparateFile, System.Threading.CancellationToken cancellationToken,  List<string> includedAttributes = null)
+        private void Process(ShapeFileFeatureLayer shapeFile, EGIS.Web.Controls.VectorTileGenerator generator, bool exportAttributesToSeparateFile, System.Threading.CancellationToken cancellationToken,  List<string> includedAttributes = null)
         {
             int zoom = Math.Max(StartZoomLevel, 0);
             int endZoomLevel = Math.Min(Math.Max(zoom, EndZoomLevel), 49);
@@ -224,7 +223,7 @@ namespace ShpToMapboxVT
             }
 
             
-            RectangleD shapeFileBounds = shapeFile.Extent;
+            RectangleShape shapeFileBounds = shapeFile.GetBoundingBox();
             Console.Out.WriteLine(shapeFileBounds);
 
          
@@ -234,8 +233,8 @@ namespace ShpToMapboxVT
             double currentScale = GetZoomLevelIndex(zoomLevelSet, zoom);
 
             var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, tileSize, tileSize, GeographyUnit.Meter);
-            RectangleShape boundingBox = new RectangleShape(shapeFileBounds.Left, shapeFileBounds.Top, shapeFileBounds.Right, shapeFileBounds.Bottom);
-            var tileRange = tileMatrix.GetIntersectingRowColumnRange(boundingBox);
+          //  RectangleShape boundingBox = new RectangleShape(shapeFileBounds.Left, shapeFileBounds.Top, shapeFileBounds.Right, shapeFileBounds.Bottom);
+            var tileRange = tileMatrix.GetIntersectingRowColumnRange(shapeFileBounds);
 
             processTileCount = totalDataTileCount = tileSpeedCount = 0;
             processingStartTime = DateTime.Now;
@@ -286,7 +285,7 @@ namespace ShpToMapboxVT
         private DateTime tileSpeedStartTime = DateTime.Now;
         private DateTime processingStartTime = DateTime.Now;
 
-        private void ProcessTileRecursive(ShapeFile shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, EGIS.Web.Controls.VectorTileGenerator generator, bool exportAttributesToSeparateFile, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
+        private void ProcessTileRecursive(ShapeFileFeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, EGIS.Web.Controls.VectorTileGenerator generator, bool exportAttributesToSeparateFile, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             if (cancellationToken.IsCancellationRequested) return;
             bool result = ProcessTile(shapeFile, tileX, tileY, zoom, generator, exportAttributesToSeparateFile, includedAttributes);
@@ -314,11 +313,11 @@ namespace ShpToMapboxVT
             }
         }
 
-        private bool ProcessTile(ShapeFile shapeFile, int tileX, int tileY, int zoom, EGIS.Web.Controls.VectorTileGenerator generator,
+        private bool ProcessTile(ShapeFileFeatureLayer shapeFile, int tileX, int tileY, int zoom, EGIS.Web.Controls.VectorTileGenerator generator,
             bool exportAttributesToSeparateFile, List<string> includedAttributes = null)
         {
             ++processTileCount;
-            List<ShapeFile> layers = new List<ShapeFile>();
+            List<ShapeFileFeatureLayer> layers = new List<ShapeFileFeatureLayer>();
             layers.Add(shapeFile);
             var vectorTile = generator.Generate(tileX, tileY, zoom, layers);
             if (vectorTile != null && vectorTile.Count > 0)
@@ -355,66 +354,94 @@ namespace ShpToMapboxVT
 
 
         /// <summary>
-        /// Transforms the coordinates a shapefile and writes to a new shapefile
-        /// </summary>
-        /// <param name="sourceShapeFileName">full path to the source shapefile</param>
-        /// <param name="targetShapeFileName">full path to the target shapefile that will be created</param>
-        /// <param name="targetCRS">target Coordinate Reference System</param>
-        /// <param name="restrictToAreaOfUse">flag to indicate whether the source coordinates should be restricted to the targetCRS area of use before transforming coordinates</param>
-        private void TransformShapeFileCRS(string sourceShapeFileName, string targetShapeFileName, ICRS targetCRS)
-        {
-            int currentPercent = 0;
-            using (ShapeFile sourceShapeFile = new ShapeFile(sourceShapeFileName))
-            {                                
-                //create a ICoordinateTransformation to transform coordinates from source shapefiles CRS to the target CRS
-                using (ICoordinateTransformation coordinateTransformation = CoordinateReferenceSystemFactory.Default.CreateCoordinateTrasformation(sourceShapeFile.CoordinateReferenceSystem, targetCRS))
-                using (ShapeFileWriter writer = ShapeFileWriter.CreateWriter(System.IO.Path.GetDirectoryName(targetShapeFileName),
-                        System.IO.Path.GetFileNameWithoutExtension(targetShapeFileName),
-                        sourceShapeFile.ShapeType,
-                        sourceShapeFile.RenderSettings.DbfReader.DbfRecordHeader.GetFieldDescriptions()))
-                {
-                    for (int n = 0; n < sourceShapeFile.RecordCount; ++n)
-                    {
-                        var shapeData = sourceShapeFile.GetShapeDataD(n);                            
-                        foreach (var part in shapeData)
-                        {
-                            coordinateTransformation.Transform(part);
-                        }
-                        string[] attributes = sourceShapeFile.GetAttributeFieldValues(n);
-                        if (sourceShapeFile.ShapeType == ShapeType.PolyLineM)
-                        {
-                            var measureData = sourceShapeFile.GetShapeMDataD(n);
-                            writer.AddRecord(shapeData, measureData, attributes);
-                        }
-                        else
-                        {
-                            writer.AddRecord(shapeData, attributes);
-                        }
-                        //update the progress
-                        int percent = (int)Math.Round(100 * (double)(n + 1) / (double)sourceShapeFile.RecordCount);
-                        if (percent != currentPercent)
-                        {
-                            currentPercent = percent;                                
-                        }
-                    }
-                }
+        ///// Transforms the coordinates a shapefile and writes to a new shapefile
+        ///// </summary>
+        ///// <param name="sourceShapeFileName">full path to the source shapefile</param>
+        ///// <param name="targetShapeFileName">full path to the target shapefile that will be created</param>
+        ///// <param name="targetCRS">target Coordinate Reference System</param>
+        ///// <param name="restrictToAreaOfUse">flag to indicate whether the source coordinates should be restricted to the targetCRS area of use before transforming coordinates</param>
+        //private void TransformShapeFileCRS(string sourceShapeFileName, string targetShapeFileName, ICRS targetCRS)
+        //{
+        //    int currentPercent = 0;
+        //    using (ShapeFile sourceShapeFile = new ShapeFile(sourceShapeFileName))
+        //    {                                
+        //        //create a ICoordinateTransformation to transform coordinates from source shapefiles CRS to the target CRS
+        //        using (ICoordinateTransformation coordinateTransformation = CoordinateReferenceSystemFactory.Default.CreateCoordinateTrasformation(sourceShapeFile.CoordinateReferenceSystem, targetCRS))
+        //        using (ShapeFileWriter writer = ShapeFileWriter.CreateWriter(System.IO.Path.GetDirectoryName(targetShapeFileName),
+        //                System.IO.Path.GetFileNameWithoutExtension(targetShapeFileName),
+        //                sourceShapeFile.ShapeType,
+        //                sourceShapeFile.RenderSettings.DbfReader.DbfRecordHeader.GetFieldDescriptions()))
+        //        {
+        //            for (int n = 0; n < sourceShapeFile.RecordCount; ++n)
+        //            {
+        //                var shapeData = sourceShapeFile.GetShapeDataD(n);                            
+        //                foreach (var part in shapeData)
+        //                {
+        //                    coordinateTransformation.Transform(part);
+        //                }
+        //                string[] attributes = sourceShapeFile.GetAttributeFieldValues(n);
+        //                if (sourceShapeFile.ShapeType == ShapeType.PolyLineM)
+        //                {
+        //                    var measureData = sourceShapeFile.GetShapeMDataD(n);
+        //                    writer.AddRecord(shapeData, measureData, attributes);
+        //                }
+        //                else
+        //                {
+        //                    writer.AddRecord(shapeData, attributes);
+        //                }
+        //                //update the progress
+        //                int percent = (int)Math.Round(100 * (double)(n + 1) / (double)sourceShapeFile.RecordCount);
+        //                if (percent != currentPercent)
+        //                {
+        //                    currentPercent = percent;                                
+        //                }
+        //            }
+        //        }
                 
 
-                //write the .prj file
-                using (System.IO.StreamWriter writer = new System.IO.StreamWriter(System.IO.Path.ChangeExtension(targetShapeFileName, ".prj")))
-                {
-                    writer.WriteLine(targetCRS.WKT);
-                }
-            }
-        }
+        //        //write the .prj file
+        //        using (System.IO.StreamWriter writer = new System.IO.StreamWriter(System.IO.Path.ChangeExtension(targetShapeFileName, ".prj")))
+        //        {
+        //            writer.WriteLine(targetCRS.WKT);
+        //        }
+        //    }
+        //}
 
-       
+
 
         #region process attributes
 
-        private void OutputMetadata(ShapeFile shapeFile, string fileName, List<string> includedAttributes, bool outputAttributeValues)
+        /// <summary>
+        /// Returns zero-based index of a given field name in an array of field names
+        /// </summary>
+        /// <param name="fields"></param>
+        /// <param name="fieldName"></param>
+        /// <param name="ignoreCase"></param>
+        /// <returns></returns>
+        public static int IndexOfField(string[] fields, string fieldName, bool ignoreCase)
         {
-            string[] attributeNames = shapeFile.GetAttributeFieldNames();
+            if (fields == null || string.IsNullOrEmpty(fieldName)) return -1;
+            int index;
+            for (index = fields.Length - 1; index >= 0; --index)
+            {
+                if (ignoreCase)
+                {
+                    if (string.Compare(fields[index], fieldName, StringComparison.OrdinalIgnoreCase) == 0) return index;
+                }
+                else
+                {
+                    if (string.Compare(fields[index], fieldName, StringComparison.Ordinal) == 0) return index;
+                }
+            }
+            return index;
+        }
+
+
+        private void OutputMetadata(ShapeFileFeatureLayer shapeFile, string fileName, List<string> includedAttributes, bool outputAttributeValues)
+        {
+            shapeFile.Open();
+            //string[] attributeNames = shapeFile.GetAttributeFieldNames();
+            string[] attributeNames  = shapeFile.QueryTools.GetColumns().Select(f => f.ColumnName).ToArray();
             List<int> includedAttributeIndicies = null;
             Metadata metadata = new Metadata();
             metadata.TileSize = this.TileSize;
@@ -429,37 +456,38 @@ namespace ShpToMapboxVT
                 includedAttributeIndicies = new List<int>();
                 foreach (string name in includedAttributes)
                 {
-                    int index = CsvUtil.IndexOfField(attributeNames, name, true);
+                    int index = IndexOfField(attributeNames, name, true);
                     if (index < 0) throw new Exception(string.Format("field {0} from includedAttributes not found in shapefile DBF attributes", name));
                     includedAttributeIndicies.Add(index);
                 }
                 metadata.AttrKeys.AddRange(includedAttributes);
             }
-            if (outputAttributeValues)
-            {
-                for (int n = 0; n < shapeFile.RecordCount; ++n)
-                {
-                    Record record = new Record()
-                    {
-                        Id = n
-                    };
-                    string[] attributeValues = shapeFile.GetAttributeFieldValues(n);
-                    EGIS.ShapeFileLib.CsvUtil.TrimValues(attributeValues);
-                    if (includedAttributes == null)
-                    {
-                        record.AttrValues.AddRange(attributeValues);
-                    }
-                    else
-                    {
-                        foreach (int index in includedAttributeIndicies)
-                        {
-                            record.AttrValues.Add(attributeValues[index]);
-                        }
-                    }
+            //if (outputAttributeValues)
+            //{
+            //    for (int n = 0; n < shapeFile.QueryTools.GetCount(); ++n)
+            //    {
+            //        Record record = new Record()
+            //        {
+            //            Id = n
+            //        };
+            //        string[] attributeValues = shapeFile.GetAttributeFieldValues(n);
+            //        string[] attributeValues = shapeFile.QueryTools.GetFeatureById((n + 1).ToString(), ).Select(f => f.).ToArray();
+            //        EGIS.ShapeFileLib.CsvUtil.TrimValues(attributeValues);
+            //        if (includedAttributes == null)
+            //        {
+            //            record.AttrValues.AddRange(attributeValues);
+            //        }
+            //        else
+            //        {
+            //            foreach (int index in includedAttributeIndicies)
+            //            {
+            //                record.AttrValues.Add(attributeValues[index]);
+            //            }
+            //        }
 
-                    metadata.Records.Add(record);
-                }
-            }
+            //        metadata.Records.Add(record);
+            //    }
+            //}
 
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(metadata);
             using (System.IO.StreamWriter writer = new System.IO.StreamWriter(fileName))
