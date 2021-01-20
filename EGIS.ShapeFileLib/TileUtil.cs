@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using ThinkGeo.Core;
 
 namespace EGIS.ShapeFileLib
 {
@@ -66,20 +67,6 @@ namespace EGIS.ShapeFileLib
         {
         }
 
-        /// <summary>
-        /// Returns the tile number a given lat/long location lies in at a given zoom level
-        /// </summary>
-        /// <param name="lon"></param>
-        /// <param name="lat"></param>
-        /// <param name="zoomLevel"></param>
-        /// <returns>a Point containing the tiles x,y coordinates</returns>
-        public static System.Drawing.Point GetTileFromGisLocation(double lon, double lat, int zoomLevel, int tileSize=256)
-        {
-            if (zoomLevel < 0) throw new System.ArgumentException("zoomLevel must be >=0", "zoomLevel");
-            long x, y;
-            LLToPixel(new PointD(lon, lat), zoomLevel, out x, out y, tileSize);
-            return new System.Drawing.Point((int)(x/ tileSize), (int)(y/ tileSize));
-        }
 
         /// <summary>
         /// Returns the centre point (in Mercator Projection coordinates) of a given tile
@@ -101,6 +88,46 @@ namespace EGIS.ShapeFileLib
             PointD topLeft = PixelToLL((tileX * tileSize), (tileY * tileSize), zoomLevel, tileSize);
             PointD bottomRight = PixelToLL(((tileX+1) * tileSize), ((tileY+1) * tileSize), zoomLevel, tileSize);
             return RectangleD.FromLTRB(topLeft.X, bottomRight.Y, bottomRight.X, topLeft.Y);
+        }
+
+
+        public static RectangleD GetTileSphericalMercatorBounds(long tileX, long tileY, int zoomLevel, int tileSize = 256)
+        {
+            SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
+            //double currentScale = zoomLevelSet.CustomZoomLevels[zoomLevel].Scale;
+            double currentScale = GetZoomLevelIndex(zoomLevelSet, zoomLevel);
+            var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, 512, 512, GeographyUnit.Meter);
+            RectangleShape bbox = tileMatrix.GetCell(tileX, tileY).BoundingBox;
+            return RectangleD.FromLTRB(bbox.UpperLeftPoint.X, bbox.LowerRightPoint.Y, bbox.LowerRightPoint.X, bbox.UpperLeftPoint.Y);
+        }
+
+        public static double GetZoomLevelIndex(ZoomLevelSet zoomLevelSet, int zoomLevel)
+        {
+            switch (zoomLevel)
+            {
+                case 0: return zoomLevelSet.ZoomLevel01.Scale;
+                case 1: return zoomLevelSet.ZoomLevel02.Scale;
+                case 2: return zoomLevelSet.ZoomLevel03.Scale;
+                case 3: return zoomLevelSet.ZoomLevel04.Scale;
+                case 4: return zoomLevelSet.ZoomLevel05.Scale;
+                case 5: return zoomLevelSet.ZoomLevel06.Scale;
+                case 6: return zoomLevelSet.ZoomLevel07.Scale;
+                case 7: return zoomLevelSet.ZoomLevel08.Scale;
+                case 8: return zoomLevelSet.ZoomLevel09.Scale;
+                case 9: return zoomLevelSet.ZoomLevel10.Scale;
+                case 10: return zoomLevelSet.ZoomLevel11.Scale;
+                case 11: return zoomLevelSet.ZoomLevel12.Scale;
+                case 12: return zoomLevelSet.ZoomLevel13.Scale;
+                case 13: return zoomLevelSet.ZoomLevel14.Scale;
+                case 14: return zoomLevelSet.ZoomLevel15.Scale;
+                case 15: return zoomLevelSet.ZoomLevel16.Scale;
+                case 16: return zoomLevelSet.ZoomLevel17.Scale;
+                case 17: return zoomLevelSet.ZoomLevel18.Scale;
+                case 18: return zoomLevelSet.ZoomLevel19.Scale;
+                case 19: return zoomLevelSet.ZoomLevel20.Scale;
+                default:
+                    return -1;
+            }
         }
 
         private const long l = 1;
@@ -126,15 +153,29 @@ namespace EGIS.ShapeFileLib
             return (int)Math.Round(Math.Log(scale*360/(double)tileSize, 2));
         }
 
-        private static readonly PointD MaxMerc = ShapeFile.LLToMercator(new PointD(180, 90));
+        static Dictionary<string, RectangleShape> dictionaryCache = new Dictionary<string, RectangleShape>();
 
-        public static void LLToPixel(PointD latLong, int zoomLevel, out long x, out long y, int tileSize=256)
+
+        public static void LLToPixel2(PointD sphericalMercator, int zoomLevel, int tileX, int tileY, out long x, out long y, int tileSize = 256)
         {
-            //convert LL to Mercatator
-            PointD merc = ShapeFile.LLToMercator(latLong);
-            double scale = ZoomLevelToScale(zoomLevel, tileSize);
-            x = (long)Math.Round((merc.X+MaxMerc.X) * scale);
-            y = (long)Math.Round((MaxMerc.Y-merc.Y) * scale);
+            string key = $"{zoomLevel}-{tileX}-{tileY}";
+            if (!dictionaryCache.ContainsKey(key))
+            {
+                SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
+                double currentScale = GetZoomLevelIndex(zoomLevelSet, zoomLevel);
+                var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, 512, 512, GeographyUnit.Meter);
+                dictionaryCache.Add(key, tileMatrix.GetCell(tileX, tileY).BoundingBox);
+            }
+
+            RectangleShape bbox = dictionaryCache[key];
+
+
+
+            double scale = ((double)tileSize / 40075016.4629396) * (l << zoomLevel);
+            x = (long)Math.Round((sphericalMercator.X - bbox.LowerLeftPoint.X) * scale);
+
+            y = (long)Math.Round((bbox.UpperLeftPoint.Y - sphericalMercator.Y) * scale);
+
         }
 
         public static PointD PixelToLL(int pixX, int pixY, int zoomLevel, int tileSize=256)

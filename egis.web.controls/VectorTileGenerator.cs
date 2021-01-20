@@ -44,17 +44,17 @@ namespace EGIS.Web.Controls
     /// </remarks>
     /// <example> Sample code to create a Mapbox Vector Tile from a shapefile. 
     /// <code>        
-///public void CreateMapboxTile(List&lt;ShapeFile&gt; mapLayers, string vectorTileFileName)
-///{
-///    //create a VectorTileGenerator
-///    VectorTileGenerator tileGenerator = new VectorTileGenerator();
-///    List&lt;VectorTileLayer&gt; tileLayers = tileGenerator.Generate(tileX, tileY, zoomLevel, mapLayers);
-///    //encode the vector tile in Mapbox vector tile format
-///    using (System.IO.FileStream fs = new System.IO.FileStream(vectorTileFileName, System.IO.FileMode.Create))
-///    {
-///        EGIS.Mapbox.Vector.Tile.VectorTileParser.Encode(tileLayers, fs);
-///    }
-///}
+    ///public void CreateMapboxTile(List&lt;ShapeFile&gt; mapLayers, string vectorTileFileName)
+    ///{
+    ///    //create a VectorTileGenerator
+    ///    VectorTileGenerator tileGenerator = new VectorTileGenerator();
+    ///    List&lt;VectorTileLayer&gt; tileLayers = tileGenerator.Generate(tileX, tileY, zoomLevel, mapLayers);
+    ///    //encode the vector tile in Mapbox vector tile format
+    ///    using (System.IO.FileStream fs = new System.IO.FileStream(vectorTileFileName, System.IO.FileMode.Create))
+    ///    {
+    ///        EGIS.Mapbox.Vector.Tile.VectorTileParser.Encode(tileLayers, fs);
+    ///    }
+    ///}
     /// </code>                                                   
     /// </example>
     public class VectorTileGenerator
@@ -135,7 +135,7 @@ namespace EGIS.Web.Controls
         /// <returns></returns>
         public virtual List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<ShapeFile> layers, OutputTileFeatureDelegate outputTileFeature = null)
         {
-                       
+
             List<VectorTileLayer> tileLayers = new List<VectorTileLayer>();
 
             lock (EGIS.ShapeFileLib.ShapeFile.Sync)
@@ -182,7 +182,7 @@ namespace EGIS.Web.Controls
         private VectorTileLayer ProcessLineStringTile(ShapeFile shapeFile, int tileX, int tileY, int zoom, OutputTileFeatureDelegate outputTileFeature)
         {
             int tileSize = TileSize;
-            RectangleD tileBounds = TileUtil.GetTileLatLonBounds(tileX, tileY, zoom, tileSize);
+            RectangleD tileBounds = TileUtil.GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
             //create a buffer around the tileBounds 
             tileBounds.Inflate(tileBounds.Width * 0.05, tileBounds.Height * 0.05);
 
@@ -209,9 +209,9 @@ namespace EGIS.Web.Controls
             VectorTileLayer tileLayer = new VectorTileLayer();
             tileLayer.Extent = (uint)tileSize;
             tileLayer.Version = 2;
-			tileLayer.Name = !string.IsNullOrEmpty(shapeFile.Name) ? shapeFile.Name : System.IO.Path.GetFileNameWithoutExtension(shapeFile.FilePath);
+            tileLayer.Name = !string.IsNullOrEmpty(shapeFile.Name) ? shapeFile.Name : System.IO.Path.GetFileNameWithoutExtension(shapeFile.FilePath);
 
-			if (indicies.Count > 0)
+            if (indicies.Count > 0)
             {
 
                 foreach (int index in indicies)
@@ -247,9 +247,11 @@ namespace EGIS.Web.Controls
                         for (int n = 0; n < points.Length; ++n)
                         {
                             Int64 x, y;
-                            TileUtil.LLToPixel(points[n], zoom, out x, out y, tileSize);
-                            pixelPoints[n].X = (int)(x - tilePixelOffset.X);
-                            pixelPoints[n].Y = (int)(y - tilePixelOffset.Y);
+                            TileUtil.LLToPixel2(points[n], zoom, tileX, tileY, out x, out y, tileSize);
+                            //pixelPoints[n].X = (int)(x - tilePixelOffset.X);
+                            //pixelPoints[n].Y = (int)(y - tilePixelOffset.Y);
+                            pixelPoints[n].X = (int)x;
+                            pixelPoints[n].Y = (int)y;
                         }
 
                         int outputCount = 0;
@@ -261,13 +263,13 @@ namespace EGIS.Web.Controls
                         {
                             List<int> clippedPoints = new List<int>();
                             List<int> parts = new List<int>();
-                            
+
                             if (outputMeasureValues)
                             {
                                 List<double> clippedMeasures = new List<double>();
                                 GeometryAlgorithms.PolyLineClip(simplifiedPixelPoints, outputCount, clipBounds, clippedPoints, parts, simplifiedMeasures, clippedMeasures);
                                 outputMeasures.AddRange(clippedMeasures);
-                            }                            
+                            }
                             else
                             {
                                 GeometryAlgorithms.PolyLineClip(simplifiedPixelPoints, outputCount, clipBounds, clippedPoints, parts);
@@ -326,7 +328,8 @@ namespace EGIS.Web.Controls
         private VectorTileLayer ProcessPolygonTile(ShapeFile shapeFile, int tileX, int tileY, int zoom, OutputTileFeatureDelegate outputTileFeature)
         {
             int tileSize = TileSize;
-            RectangleD tileBounds = TileUtil.GetTileLatLonBounds(tileX, tileY, zoom, tileSize);
+            RectangleD tileBounds = TileUtil.GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
+
             //create a buffer around the tileBounds 
             tileBounds.Inflate(tileBounds.Width * 0.05, tileBounds.Height * 0.05);
 
@@ -346,7 +349,7 @@ namespace EGIS.Web.Controls
 
             List<System.Drawing.Point> clippedPolygon = new List<System.Drawing.Point>();
 
-            
+
             VectorTileLayer tileLayer = new VectorTileLayer();
             tileLayer.Extent = (uint)tileSize;
             tileLayer.Version = 2;
@@ -367,7 +370,7 @@ namespace EGIS.Web.Controls
                     };
 
                     //get the point data
-                    var recordPoints = shapeFile.GetShapeDataD(index);                    
+                    var recordPoints = shapeFile.GetShapeDataD(index);
                     int partIndex = 0;
                     foreach (PointD[] points in recordPoints)
                     {
@@ -381,11 +384,10 @@ namespace EGIS.Web.Controls
                         for (int n = 0; n < points.Length; ++n)
                         {
                             Int64 x, y;
-                            TileUtil.LLToPixel(points[n], zoom, out x, out y, tileSize);
-                            
-                            pixelPoints[pointCount].X = (int)(x - tilePixelOffset.X);
-                            pixelPoints[pointCount++].Y = (int)(y - tilePixelOffset.Y);
-                            
+                            TileUtil.LLToPixel2(points[n], zoom, tileX, tileY, out x, out y, tileSize);
+                            pixelPoints[pointCount].X = (int)(x);
+                            pixelPoints[pointCount++].Y = (int)(y);
+
                         }
                         ////check for duplicates points at end after they have been converted to pixel coordinates
                         ////polygons need at least 3 points so don't reduce less than this
@@ -395,15 +397,15 @@ namespace EGIS.Web.Controls
                         //}
 
                         int outputCount = 0;
-                        SimplifyPointData(pixelPoints, null, pointCount, simplificationFactor, simplifiedPixelPoints, null, ref pointsBuffer, ref outputCount);                       
+                        SimplifyPointData(pixelPoints, null, pointCount, simplificationFactor, simplifiedPixelPoints, null, ref pointsBuffer, ref outputCount);
                         //simplifiedPixelPoints[outputCount++] = pixelPoints[pointCount-1];
-                        
+
                         if (outputCount > 1)
-                        {                            
+                        {
                             GeometryAlgorithms.PolygonClip(simplifiedPixelPoints, outputCount, clipBounds, clippedPolygon);
 
                             if (clippedPolygon.Count > 0)
-                            {                               
+                            {
                                 //output the clipped polygon                                                                                             
                                 List<Coordinate> lineString = new List<Coordinate>();
                                 feature.Geometry.Add(lineString);
@@ -437,7 +439,8 @@ namespace EGIS.Web.Controls
         private VectorTileLayer ProcessPointTile(ShapeFile shapeFile, int tileX, int tileY, int zoom, OutputTileFeatureDelegate outputTileFeature)
         {
             int tileSize = TileSize;
-            RectangleD tileBounds = TileUtil.GetTileLatLonBounds(tileX, tileY, zoom, tileSize);
+            //      RectangleD tileBounds = TileUtil.GetTileLatLonBounds(tileX, tileY, zoom, tileSize);
+            RectangleD tileBounds = TileUtil.GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
             //create a buffer around the tileBounds 
             tileBounds.Inflate(tileBounds.Width * 0.05, tileBounds.Height * 0.05);
 
@@ -454,7 +457,7 @@ namespace EGIS.Web.Controls
                 XMax = tileSize + 20,
                 YMax = tileSize + 20
             };
-          
+
 
             VectorTileLayer tileLayer = new VectorTileLayer();
             tileLayer.Extent = (uint)tileSize;
@@ -478,15 +481,15 @@ namespace EGIS.Web.Controls
                     //output the pixel coordinates                                                                                             
                     List<Coordinate> coordinates = new List<Coordinate>();
                     //get the point data
-                    var recordPoints = shapeFile.GetShapeDataD(index);                   
+                    var recordPoints = shapeFile.GetShapeDataD(index);
                     foreach (PointD[] points in recordPoints)
-                    {                                               
+                    {
                         for (int n = 0; n < points.Length; ++n)
                         {
                             Int64 x, y;
-                            TileUtil.LLToPixel(points[n], zoom, out x, out y, tileSize);
-                            coordinates.Add(new Coordinate((int)(x - tilePixelOffset.X), (int)(y - tilePixelOffset.Y)));
-                        }                                                                   
+                            TileUtil.LLToPixel2(points[n], zoom, tileX, tileY, out x, out y, tileSize);
+                            coordinates.Add(new Coordinate((int)(x), (int)(y)));
+                        }
                     }
                     if (coordinates.Count > 0)
                     {
@@ -546,7 +549,7 @@ namespace EGIS.Web.Controls
             {
                 pointsBuffer = new PointD[pointCount];
             }
-            
+
             for (int n = 0; n < pointCount; ++n)
             {
                 pointsBuffer[n].X = points[n].X;
