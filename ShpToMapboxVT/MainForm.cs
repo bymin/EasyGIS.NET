@@ -1,18 +1,14 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Drawing;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
-using EGIS.Mapbox.Vector.Tile;
-using Microsoft.Data.Sqlite;
-using System.IO;
 using ThinkGeo.Core;
-using System.IO.Compression;
 
 /*
  * 
@@ -37,68 +33,53 @@ namespace ShpToMapboxVT
     /// </summary>
     public partial class MainForm : Form
     {
-
-        private List<string> inputShapeFiles = new List<string>();
+        private System.Threading.CancellationTokenSource cancellationTokenSource = null;
 
         public MainForm()
         {
             InitializeComponent();
-
-            ValidateCanProcess();
         }
 
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-
-            LoadSettings();
-
-        }
-
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            base.OnClosing(e);
-            SaveSettings();
-        }
-
-        private void LoadSettings()
-        {
             if (Properties.Settings.Default.LastOutputDir != null)
             {
                 this.txtOutputDirectory.Text = Properties.Settings.Default.LastOutputDir;
             }
         }
 
-        private void SaveSettings()
+        protected override void OnClosing(CancelEventArgs e)
         {
-            if (!string.IsNullOrEmpty(this.txtOutputDirectory.Text) && System.IO.Directory.Exists(this.txtOutputDirectory.Text))
-            {
-            }
+            base.OnClosing(e);
             Properties.Settings.Default.LastOutputDir = this.txtOutputDirectory.Text;
             Properties.Settings.Default.Save();
-
-
         }
+
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Close();
-        }
-
-        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
-        {
-
         }
 
         private void btnBrowseShapeFile_Click(object sender, EventArgs e)
         {
             if (ofdShapeFile.ShowDialog(this) == DialogResult.OK)
             {
-                OpenShapeFiles(ofdShapeFile.FileName);
+                this.txtInputShapeFile.Text = ofdShapeFile.FileName;
+
+                // load the column names
+                ShapeFileFeatureLayer sf = new ShapeFileFeatureLayer(ofdShapeFile.FileName);
+                sf.Open();
+                clbSelectedAttributes.Items.Clear();
+                var attributeNames = sf.QueryTools.GetColumns().Select(f => f.ColumnName);
+                foreach (string name in attributeNames)
+                {
+                    clbSelectedAttributes.Items.Add(name, true);
+                }
+                ValidateCanProcess();
+                sf.Close();
             }
         }
-
-
-
 
         private void btnBrowseOutputDirectory_Click(object sender, EventArgs e)
         {
@@ -108,43 +89,9 @@ namespace ShpToMapboxVT
             }
             if (this.fbdOutput.ShowDialog(this) == DialogResult.OK)
             {
-                SetOutputDirectory(fbdOutput.SelectedPath);
-
+                this.txtOutputDirectory.Text = fbdOutput.SelectedPath;
+                ValidateCanProcess();
             }
-        }
-
-
-        private void OpenShapeFiles(string filename)
-        {
-            this.txtInputShapeFile.Text = filename;
-            ShapeFileFeatureLayer sf = new ShapeFileFeatureLayer(filename);
-            sf.Open();
-            {
-                clbSelectedAttributes.Items.Clear();
-                //string[] attributeNames = sf.GetAttributeFieldNames();
-                string[] attributeNames = sf.QueryTools.GetColumns().Select(f => f.ColumnName).ToArray();
-                foreach (string name in attributeNames)
-                {
-                    clbSelectedAttributes.Items.Add(name, true);
-                }
-            }
-            ValidateCanProcess();
-
-        }
-
-        private void SetOutputDirectory(string outputDirectory)
-        {
-            this.txtOutputDirectory.Text = outputDirectory;
-            ValidateCanProcess();
-        }
-
-        private void ValidateCanProcess()
-        {
-            bool ok = (!string.IsNullOrEmpty(this.txtOutputDirectory.Text) && System.IO.Directory.Exists(this.txtOutputDirectory.Text)) &&
-                (!string.IsNullOrEmpty(this.txtInputShapeFile.Text) && System.IO.File.Exists(this.txtInputShapeFile.Text));
-
-            this.btnProcess.Enabled = ok;
-
         }
 
         private async void btnProcess_Click(object sender, EventArgs e)
@@ -175,9 +122,29 @@ namespace ShpToMapboxVT
             catch (Exception ex)
             {
                 OutputMessage(ex.ToString() + "\n");
-
             }
+        }
 
+        private void Generator_StatusMessage(object sender, StatusMessageEventArgs e)
+        {
+            OutputMessage(e.Status + "\n");
+        }
+
+        private void btnSelectAllAttributes_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < clbSelectedAttributes.Items.Count; i++)
+                clbSelectedAttributes.SetItemChecked(i, true);
+        }
+
+        private void btnSelectNoAttributes_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < clbSelectedAttributes.Items.Count; i++)
+                clbSelectedAttributes.SetItemChecked(i, false);
+        }
+        private void ValidateCanProcess()
+        {
+            this.btnProcess.Enabled = (!string.IsNullOrEmpty(this.txtOutputDirectory.Text) && System.IO.Directory.Exists(this.txtOutputDirectory.Text))
+                && (!string.IsNullOrEmpty(this.txtInputShapeFile.Text) && System.IO.File.Exists(this.txtInputShapeFile.Text));
         }
 
         private void OutputMessage(string text)
@@ -193,9 +160,7 @@ namespace ShpToMapboxVT
             }
         }
 
-        private System.Threading.CancellationTokenSource cancellationTokenSource = null;
-
-        private async Task<bool> GenerateTiles()
+        private async Task GenerateTiles()
         {
             if (cancellationTokenSource != null)
             {
@@ -204,15 +169,13 @@ namespace ShpToMapboxVT
             }
             cancellationTokenSource = new System.Threading.CancellationTokenSource();
 
-            return await Task.Run(() =>
+            await Task.Run(() =>
             {
-
                 TileGenerator generator = new TileGenerator()
                 {
                     BaseOutputDirectory = this.txtOutputDirectory.Text,
                     StartZoomLevel = (int)nudStartZoom.Value,
                     EndZoomLevel = (int)nudEndZoom.Value,
-                    ExportAttributesToSeparateFile = this.chkExportAttributesToSeparateFile.Checked
                 };
                 generator.StatusMessage += Generator_StatusMessage;
                 try
@@ -231,24 +194,18 @@ namespace ShpToMapboxVT
                 {
                     generator.StatusMessage -= Generator_StatusMessage;
                 }
-                return true;
             });
         }
-
-
 
         public static byte[] GZipData(byte[] bytes)
         {
             byte[] zippedBytes;
-
             using (MemoryStream zippedMemoryStream = new MemoryStream())
             {
                 using (GZipStream zippedStream = new GZipStream(zippedMemoryStream, CompressionMode.Compress))
                 {
                     zippedStream.Write(bytes, 0, bytes.Length);
                     zippedStream.Close();
-                    //unzippedStream.CopyTo(zippedStream);
-                    //zippedBytes = zippedMemoryStream.ToArray();
                     zippedBytes = zippedMemoryStream.ToArray();
                 }
             }
@@ -264,10 +221,8 @@ namespace ShpToMapboxVT
             layer.Close();
 
             PointShape centerPoint = extent.GetCenterPoint();
-            string center = $"{centerPoint.X},{centerPoint.Y},14";
-
+            string center = $"{centerPoint.X},{centerPoint.Y},{maxZoom}";
             string bounds = $"{extent.UpperLeftPoint.X},{extent.UpperLeftPoint.Y},{extent.LowerRightPoint.X},{extent.LowerRightPoint.Y}";
-
 
             ThinkGeoMBTilesLayer.CreateDatabase(targetFilePath);
 
@@ -282,13 +237,12 @@ namespace ShpToMapboxVT
             Entries.Add(new MetadataEntry() { Name = "bounds", Value = bounds }); //"-96.85310250357627,33.10809235525063,-96.85260897712004,33.107616047247156"
             Entries.Add(new MetadataEntry() { Name = "center", Value = center }); // "-96.85285574034816,33.1078542012489,14"
             Entries.Add(new MetadataEntry() { Name = "minzoom", Value = "0" });
-            Entries.Add(new MetadataEntry() { Name = "maxzoom", Value = "14" });
+            Entries.Add(new MetadataEntry() { Name = "maxzoom", Value = "${maxZoom}" });
             Entries.Add(new MetadataEntry() { Name = "attribution", Value = "Copyright @2020 ThinkGeo LLC.All rights reserved." });
             Entries.Add(new MetadataEntry() { Name = "description", Value = "ThinkGeo World Street Vector Tile Data in EPSG:3857" });
             Entries.Add(new MetadataEntry() { Name = "version", Value = "2.0" });
             Entries.Add(new MetadataEntry() { Name = "json", Value = "" });
             targetMetadata.Insert(Entries);
-
 
             await Task.Run(() =>
             {
@@ -327,205 +281,7 @@ namespace ShpToMapboxVT
                     }
                 }
                 targetMap.Insert(entries);
-
             });
         }
-
-        private void Generator_StatusMessage(object sender, StatusMessageEventArgs e)
-        {
-            OutputMessage(e.Status + "\n");
-        }
-
-        private void btnSelectAllAttributes_Click(object sender, EventArgs e)
-        {
-            for (int i = 0; i < clbSelectedAttributes.Items.Count; i++)
-                clbSelectedAttributes.SetItemChecked(i, true);
-        }
-
-        private void btnSelectNoAttributes_Click(object sender, EventArgs e)
-        {
-            for (int i = 0; i < clbSelectedAttributes.Items.Count; i++)
-                clbSelectedAttributes.SetItemChecked(i, false);
-        }
-    }
-
-
-    public class TilesTable
-    {
-        private SqliteConnection connection;
-        public List<TilesEntry> Entries { get; }
-        public int Cursor { get; set; }
-        public string TableName { get; set; }
-
-        public static readonly string ZoomLevelColumnName = "zoom_level";
-        public static readonly string TileColColumnName = "tile_column";
-        public static readonly string TileRowColumnName = "tile_row";
-        public static readonly string TileIdColumnName = "Id";
-        public static readonly string TileDataColumnName = "tile_data";
-
-        public TilesTable(SqliteConnection connection)
-        {
-            this.connection = connection;
-            Entries = new List<TilesEntry>();
-            Cursor = 0;
-            TableName = "tiles";
-        }
-
-        public bool Insert(IEnumerable<TilesEntry> entries)
-        {
-            bool result = true;
-
-            string insertSqlStatement = $"INSERT INTO {TableName} ({ZoomLevelColumnName},{TileColColumnName},{TileRowColumnName},{TileIdColumnName},{TileDataColumnName}) VALUES (@{ZoomLevelColumnName}, @{TileColColumnName}, @{TileRowColumnName}, @{TileIdColumnName}, @{TileDataColumnName});";
-
-            SqliteCommand command = new SqliteCommand(insertSqlStatement, connection);
-            command.Parameters.Add($"@{ZoomLevelColumnName}", SqliteType.Integer);
-            command.Parameters.Add($"@{TileColColumnName}", SqliteType.Integer);
-            command.Parameters.Add($"@{TileRowColumnName}", SqliteType.Integer);
-            command.Parameters.Add($"@{TileIdColumnName}", SqliteType.Text);
-            command.Parameters.Add($"@{TileDataColumnName}", SqliteType.Blob);
-            command.Prepare();
-            IDbTransaction dbTransaction = connection.BeginTransaction();
-            command.Transaction = dbTransaction as SqliteTransaction;
-            try
-            {
-                foreach (TilesEntry entry in entries)
-                {
-                    command.Parameters[$"@{ZoomLevelColumnName}"].Value = ParseValue(entry.ZoomLevel);
-                    command.Parameters[$"@{TileColColumnName}"].Value = ParseValue(entry.TileColumn);
-                    command.Parameters[$"@{TileRowColumnName}"].Value = ParseValue(entry.TileRow);
-                    command.Parameters[$"@{TileIdColumnName}"].Value = ParseValue(entry.TileId);
-                    command.Parameters[$"@{TileDataColumnName}"].Value = entry.TileData;
-                    command.ExecuteNonQuery();
-                }
-                dbTransaction.Commit();
-            }
-            catch
-            {
-                dbTransaction.Rollback();
-                result = false;
-            }
-
-            return result;
-        }
-
-        private object ParseValue(object value)
-        {
-            if (value == null)
-                return DBNull.Value;
-
-            return value;
-        }
-
-        public List<TilesEntry> Query(string sqlString)
-        {
-            List<TilesEntry> result = new List<TilesEntry>();
-
-            SqliteCommand command = new SqliteCommand()
-            {
-                Connection = connection,
-            };
-            command.CommandText = sqlString;
-            SqliteDataReader dataReader = command.ExecuteReader();
-            while (dataReader.Read())
-            {
-                TilesEntry newEntry = new TilesEntry();
-                newEntry.ZoomLevel = (long)dataReader[ZoomLevelColumnName];
-                newEntry.TileColumn = (long)dataReader[TileColColumnName];
-                newEntry.TileRow = (long)dataReader[TileRowColumnName];
-                newEntry.TileId = (long)dataReader[TileIdColumnName];
-                newEntry.TileData = (byte[])dataReader[TileDataColumnName];
-
-                result.Add(newEntry);
-                Cursor++;
-            }
-
-            return result;
-        }
-    }
-
-    public class TilesEntry
-    {
-        public long ZoomLevel { get; set; }
-        public long TileColumn { get; set; }
-        public long TileRow { get; set; }
-        public long TileId { get; set; }
-        public byte[] TileData { get; set; }
-
-        public TilesEntry()
-        { }
-    }
-
-    public class MetadataTable
-    {
-        private SqliteConnection connection;
-        public List<MetadataEntry> Entries { get; }
-        private string TableName { get; set; }
-
-        public static readonly string MetadataValueColumnName = "value";
-        public static readonly string MetadataNameColumnName = "name";
-
-        public MetadataTable(SqliteConnection connection)
-        {
-            this.connection = connection;
-            Entries = new List<MetadataEntry>();
-            TableName = "metadata";
-        }
-
-        public bool Insert(IEnumerable<MetadataEntry> entries)
-        {
-            bool result = true;
-            string insertSqlStatement = $"INSERT INTO {TableName} (name, value) VALUES (@name, @value);";
-            SqliteCommand command = new SqliteCommand(insertSqlStatement, connection);
-            command.Parameters.Add("@name", SqliteType.Text);
-            command.Parameters.Add("@value", SqliteType.Text);
-            command.Prepare();
-            IDbTransaction dbTransaction = connection.BeginTransaction();
-            command.Transaction = dbTransaction as SqliteTransaction;
-            try
-            {
-                foreach (MetadataEntry entry in entries)
-                {
-                    command.Parameters["@name"].Value = entry.Name;
-                    command.Parameters["@value"].Value = entry.Value;
-                    command.ExecuteNonQuery();
-                }
-
-                dbTransaction.Commit();
-            }
-            catch
-            {
-                dbTransaction.Rollback();
-                result = false;
-            }
-
-            return result;
-        }
-
-        public void ReadAllEntries()
-        {
-            SqliteDataReader dataReader = null;
-            Entries.Clear();
-
-            SqliteCommand command = new SqliteCommand()
-            {
-                Connection = connection,
-            };
-            command.CommandText = $"SELECT * FROM {TableName}";
-            dataReader = command.ExecuteReader();
-
-            while (dataReader.Read())
-            {
-                string name = (string)dataReader["name"];
-                string value = (string)dataReader["value"];
-                Entries.Add(new MetadataEntry() { Name = name, Value = value });
-            }
-        }
-
-
-    }
-    public class MetadataEntry
-    {
-        public string Name { get; set; }
-        public string Value { get; set; }
     }
 }

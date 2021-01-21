@@ -36,7 +36,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>easygis.ico</ApplicationIcon>
+    <ApplicationIcon>
+    </ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Jint, Version=0.0.0.0, Culture=neutral, PublicKeyToken=2e92ba9c8d81157f, processorArchitecture=MSIL">
@@ -108,6 +109,10 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TileGenerator.cs" />
+    <Compile Include="MetadataTable.cs" />
+    <Compile Include="TilesEntry.cs" />
+    <Compile Include="MetadataEntry.cs" />
+    <Compile Include="TilesTable.cs" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -121,10 +126,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="..\libraries\EGIS\Proj6\proj.db">
-      <Link>Proj6\proj.db</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -138,33 +139,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="..\libraries\EGIS\geomutil_lib.dll">
-      <Link>geomutil_lib.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\libraries\EGIS\geomutil_libx64.dll">
-      <Link>geomutil_libx64.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\libraries\EGIS\Proj6\x64\proj_6_1.dll">
-      <Link>Proj6\x64\proj_6_1.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\libraries\EGIS\Proj6\x64\sqlite3.dll">
-      <Link>Proj6\x64\sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\libraries\EGIS\Proj6\x86\proj_6_1.dll">
-      <Link>Proj6\x86\proj_6_1.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\libraries\EGIS\Proj6\x86\sqlite3.dll">
-      <Link>Proj6\x86\sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="easygis.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\egis.mapbox.vector.tile\EGIS.Mapbox.Vector.Tile.csproj">

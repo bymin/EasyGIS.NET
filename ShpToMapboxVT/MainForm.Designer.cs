@@ -57,7 +57,6 @@
             this.btnSelectAllAttributes = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
             this.clbSelectedAttributes = new System.Windows.Forms.CheckedListBox();
-            this.chkExportAttributesToSeparateFile = new System.Windows.Forms.CheckBox();
             this.rtbOutput = new System.Windows.Forms.RichTextBox();
             this.ofdShapeFile = new System.Windows.Forms.OpenFileDialog();
             this.fbdOutput = new System.Windows.Forms.FolderBrowserDialog();
@@ -98,7 +97,7 @@
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(92, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(93, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -176,7 +175,6 @@
             this.nudStartZoom.Name = "nudStartZoom";
             this.nudStartZoom.Size = new System.Drawing.Size(63, 20);
             this.nudStartZoom.TabIndex = 7;
-            this.nudStartZoom.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
             // 
             // label3
             // 
@@ -232,7 +230,6 @@
             this.groupBox1.Controls.Add(this.btnSelectAllAttributes);
             this.groupBox1.Controls.Add(this.label5);
             this.groupBox1.Controls.Add(this.clbSelectedAttributes);
-            this.groupBox1.Controls.Add(this.chkExportAttributesToSeparateFile);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.txtInputShapeFile);
             this.groupBox1.Controls.Add(this.label4);
@@ -286,18 +283,6 @@
             this.clbSelectedAttributes.Name = "clbSelectedAttributes";
             this.clbSelectedAttributes.Size = new System.Drawing.Size(208, 94);
             this.clbSelectedAttributes.TabIndex = 12;
-            // 
-            // chkExportAttributesToSeparateFile
-            // 
-            this.chkExportAttributesToSeparateFile.AutoSize = true;
-            this.chkExportAttributesToSeparateFile.Checked = true;
-            this.chkExportAttributesToSeparateFile.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkExportAttributesToSeparateFile.Location = new System.Drawing.Point(398, 185);
-            this.chkExportAttributesToSeparateFile.Name = "chkExportAttributesToSeparateFile";
-            this.chkExportAttributesToSeparateFile.Size = new System.Drawing.Size(174, 17);
-            this.chkExportAttributesToSeparateFile.TabIndex = 11;
-            this.chkExportAttributesToSeparateFile.Text = "Export attributes to separate file";
-            this.chkExportAttributesToSeparateFile.UseVisualStyleBackColor = true;
             // 
             // rtbOutput
             // 
@@ -364,7 +349,6 @@
         private System.Windows.Forms.FolderBrowserDialog fbdOutput;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.CheckedListBox clbSelectedAttributes;
-        private System.Windows.Forms.CheckBox chkExportAttributesToSeparateFile;
         private System.Windows.Forms.Button btnSelectNoAttributes;
         private System.Windows.Forms.Button btnSelectAllAttributes;
     }
