@@ -60,18 +60,6 @@ namespace EGIS.Web.Controls
     /// </example>
     public class VectorTileGenerator
     {
-
-        /// <summary>
-        /// delegate to return whether a feature should be output at a given zoom level and tile coordinates
-        /// </summary>
-        /// <param name="shapeFile"></param>
-        /// <param name="recordIndex"></param>
-        /// <param name="tileZ"></param>
-        /// <param name="tileX"></param>
-        /// <param name="tileY"></param>
-        /// <returns></returns>
-        public delegate bool OutputTileFeatureDelegate(ShapeFileFeatureLayer shapeFile, int recordIndex, int tileZ, int tileX, int tileY);
-
         /// <summary>
         /// VectorTileGenerator constructor 
         /// </summary>
@@ -79,8 +67,6 @@ namespace EGIS.Web.Controls
         {
             TileSize = 512;
             SimplificationFactor = 1;
-            OutputMeasureValues = false;
-            MeasuresAttributeName = "_MValues";
         }
 
         /// <summary>
@@ -99,28 +85,6 @@ namespace EGIS.Web.Controls
         }
 
         /// <summary>
-        /// whether to output PolylineM Measures.
-        /// </summary>
-        public bool OutputMeasureValues
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Output Measures Attribute name. Default is "_MValues"
-        /// </summary>
-        public string MeasuresAttributeName
-        {
-            get;
-            set;
-        }
-
-        //PointShape[] pointsBuffer = new PointShape[1024];
-        //System.Drawing.Point[] pixelPoints = new System.Drawing.Point[1024];
-        //System.Drawing.Point[] simplifiedPixelPoints = new System.Drawing.Point[1024];
-
-        /// <summary>
         /// Generates a Vector Tile from ShapeFile layers
         /// </summary>
         /// <param name="tileX">Tile X coordinate</param>
@@ -129,7 +93,7 @@ namespace EGIS.Web.Controls
         /// <param name="layers">List of ShapeFile layers</param>
         /// <param name="outputTileFeature">optional OutputTileFeatureDelegate which will be called with each record feature that will be added to the tile. This delegate is useful to exclude feaures at tile zoom levels</param>
         /// <returns></returns>
-        public virtual List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<ShapeFileFeatureSource> layers, OutputTileFeatureDelegate outputTileFeature = null)
+        public virtual List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<ShapeFileFeatureSource> layers)
         {
 
             List<VectorTileLayer> tileLayers = new List<VectorTileLayer>();
@@ -148,7 +112,7 @@ namespace EGIS.Web.Controls
                 }
                 else if (shapeFileType == ShapeFileType.Polygon || shapeFileType == ShapeFileType.PolygonZ)
                 {
-                    var layer = ProcessPolygonTile(shapeFile, tileX, tileY, zoomLevel, outputTileFeature);
+                    var layer = ProcessPolygonTile(shapeFile, tileX, tileY, zoomLevel);
                     if (layer.VectorTileFeatures != null && layer.VectorTileFeatures.Count > 0)
                     {
                         tileLayers.Add(layer);
@@ -157,7 +121,7 @@ namespace EGIS.Web.Controls
                 else if (shapeFileType == ShapeFileType.Point || shapeFileType == ShapeFileType.Multipoint ||
                          shapeFileType == ShapeFileType.PointZ || shapeFileType == ShapeFileType.PointM)
                 {
-                    var layer = ProcessPointTile(shapeFile, tileX, tileY, zoomLevel, outputTileFeature);
+                    var layer = ProcessPointTile(shapeFile, tileX, tileY, zoomLevel);
                     if (layer.VectorTileFeatures != null && layer.VectorTileFeatures.Count > 0)
                     {
                         tileLayers.Add(layer);
@@ -175,7 +139,6 @@ namespace EGIS.Web.Controls
         [Flags]
         enum ClipState { None = 0, Start = 1, End = 2 };
 
-
         public struct ClipBounds
         {
             public double XMin;
@@ -191,7 +154,7 @@ namespace EGIS.Web.Controls
 
         #region private members
 
-        public struct PointI
+        private struct PointI
         {
             public int X { get; set; }
             public int Y { get; set; }
@@ -215,8 +178,9 @@ namespace EGIS.Web.Controls
             {
                 return !((a.X == b.X) && (a.Y == b.Y));
             }
-
         }
+
+        private static Dictionary<string, RectangleShape> dictionaryCache = new Dictionary<string, RectangleShape>();
 
         private VectorTileLayer ProcessLineStringTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom)
         {
@@ -224,7 +188,6 @@ namespace EGIS.Web.Controls
             RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
             tileBounds.ScaleUp(5);
 
-            //int simplificationFactor = Math.Min(10, Math.Max(1, SimplificationPixelThreshold));
             Collection<string> featureIds = shapeFile.GetFeatureIdsInsideBoundingBox(tileBounds);
             ClipBounds clipBounds = new ClipBounds()
             {
@@ -291,19 +254,9 @@ namespace EGIS.Web.Controls
                 }
 
                 //add the record attributes
-                List<string> fields1 = new List<string>();
-                List<string> values1 = new List<string>();
                 foreach (var attributes in feature.ColumnValues)
                 {
-                    fields1.Add(attributes.Key);
-                    values1.Add(attributes.Value);
-                }
-                string[] fieldNames = fields1.ToArray();
-                string[] values = values1.ToArray();
-
-                for (int n = 0; n < values.Length; ++n)
-                {
-                    tileFeature.Attributes.Add(new AttributeKeyValue(fieldNames[n], values[n].Trim()));
+                    tileFeature.Attributes.Add(new AttributeKeyValue(attributes.Key, attributes.Value));
                 }
 
                 if (tileFeature.Geometry.Count > 0)
@@ -315,7 +268,7 @@ namespace EGIS.Web.Controls
             return tileLayer;
         }
 
-        private VectorTileLayer ProcessPolygonTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, OutputTileFeatureDelegate outputTileFeature)
+        private VectorTileLayer ProcessPolygonTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom)
         {
             //int tileSize = TileSize;
             //RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
@@ -434,7 +387,7 @@ namespace EGIS.Web.Controls
             return null;
         }
 
-        private VectorTileLayer ProcessPointTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, OutputTileFeatureDelegate outputTileFeature)
+        private VectorTileLayer ProcessPointTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom)
         {
             //int tileSize = TileSize;
             ////      RectangleD tileBounds = TileUtil.GetTileLatLonBounds(tileX, tileY, zoom, tileSize);
@@ -542,9 +495,7 @@ namespace EGIS.Web.Controls
             return SimplifyDouglasPeucker(points, simplificationFactor);
         }
 
-
-
-        public static double GetZoomLevelIndex(ZoomLevelSet zoomLevelSet, int zoomLevel)
+        private static double GetZoomLevelSetScale(ZoomLevelSet zoomLevelSet, int zoomLevel)
         {
             switch (zoomLevel)
             {
@@ -573,11 +524,11 @@ namespace EGIS.Web.Controls
             }
         }
 
-        public static RectangleShape GetTileSphericalMercatorBounds(long tileX, long tileY, int zoomLevel, int tileSize = 256)
+        private static RectangleShape GetTileSphericalMercatorBounds(long tileX, long tileY, int zoomLevel, int tileSize = 256)
         {
             SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
             //double currentScale = zoomLevelSet.CustomZoomLevels[zoomLevel].Scale;
-            double currentScale = GetZoomLevelIndex(zoomLevelSet, zoomLevel);
+            double currentScale = GetZoomLevelSetScale(zoomLevelSet, zoomLevel);
             var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, 512, 512, GeographyUnit.Meter);
             RectangleShape bbox = tileMatrix.GetCell(tileX, tileY).BoundingBox;
             return new RectangleShape(bbox.UpperLeftPoint.X, bbox.UpperLeftPoint.Y, bbox.LowerRightPoint.X, bbox.LowerRightPoint.Y);
@@ -610,7 +561,7 @@ namespace EGIS.Web.Controls
             }
         }
 
-        public static double Dot(ref PointI a, ref PointI b, ref PointI c)
+        private static double Dot(ref PointI a, ref PointI b, ref PointI c)
         {
             PointShape ab = new PointShape(b.X - a.X, b.Y - a.Y);
             PointShape bc = new PointShape(c.X - b.X, c.Y - b.Y);
@@ -624,7 +575,7 @@ namespace EGIS.Web.Controls
         /// <param name="b"></param>
         /// <param name="c"></param>
         /// <returns></returns>
-        public static double Cross(ref PointI a, ref PointI b, ref PointI c)
+        private static double Cross(ref PointI a, ref PointI b, ref PointI c)
         {
             PointShape ab = new PointShape(b.X - a.X, b.Y - a.Y);
             PointShape ac = new PointShape(c.X - a.X, c.Y - a.Y);
@@ -637,14 +588,14 @@ namespace EGIS.Web.Controls
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static double Distance(ref PointI a, ref PointI b)
+        private static double Distance(ref PointI a, ref PointI b)
         {
             double d1 = a.X - b.X;
             double d2 = a.Y - b.Y;
             return Math.Sqrt((d1 * d1) + (d2 * d2));
         }
 
-        public static double LineSegPointDist(ref PointI a, ref PointI b, ref PointI c)
+        private static double LineSegPointDist(ref PointI a, ref PointI b, ref PointI c)
         {
             //float dist = cross(a,b,c) / distance(a,b);
 
@@ -659,7 +610,7 @@ namespace EGIS.Web.Controls
             return Math.Abs(Cross(ref a, ref b, ref c) / Distance(ref a, ref b));
         }
 
-        public static PointI[] SimplifyDouglasPeucker(PointI[] inputPoints, double tolerance)
+        private static PointI[] SimplifyDouglasPeucker(PointI[] inputPoints, double tolerance)
         {
             PointI[] resultPoints = new PointI[inputPoints.Length];
             if (inputPoints.Length < 3)
@@ -719,7 +670,7 @@ namespace EGIS.Web.Controls
                         return resultPoints;
         }
 
-        public static void PolyLineClip(PointI[] input, ClipBounds clipBounds, List<int> clippedPoints, List<int> parts)
+        private static void PolyLineClip(PointI[] input, ClipBounds clipBounds, List<int> clippedPoints, List<int> parts)
         {
             bool inside = false;
             for (int n = 0; n < input.Length - 1; ++n)
@@ -744,15 +695,13 @@ namespace EGIS.Web.Controls
 
         }
 
-        static Dictionary<string, RectangleShape> dictionaryCache = new Dictionary<string, RectangleShape>();
-
-        public static PointI LLToPixel2(Vertex sphericalMercator, int zoomLevel, int tileX, int tileY, int tileSize = 256)
+        private static PointI LLToPixel2(Vertex sphericalMercator, int zoomLevel, int tileX, int tileY, int tileSize = 256)
         {
             string key = $"{zoomLevel}-{tileX}-{tileY}";
             if (!dictionaryCache.ContainsKey(key))
             {
                 SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
-                double currentScale = GetZoomLevelIndex(zoomLevelSet, zoomLevel);
+                double currentScale = GetZoomLevelSetScale(zoomLevelSet, zoomLevel);
                 var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, 512, 512, GeographyUnit.Meter);
                 dictionaryCache.Add(key, tileMatrix.GetCell(tileX, tileY).BoundingBox);
             }
@@ -769,7 +718,6 @@ namespace EGIS.Web.Controls
 
             return result;
         }
-
 
         // Compute the bit code for a point (x, y) using the clip rectangle
         // bounded diagonally by (xmin, ymin), and (xmax, ymax)
@@ -791,6 +739,7 @@ namespace EGIS.Web.Controls
 
             return code;
         }
+
         /// <summary>
         /// Cohen–Sutherland clipping algorithm clips a line from P0 = (x0, y0) to P1 = (x1, y1) against a clipBounds rectangle 
         /// </summary>
@@ -802,7 +751,7 @@ namespace EGIS.Web.Controls
         /// <param name="clipState"> state of clipped line. ClipState.None if line is not clipped. If either end of the line 
         /// is clipped then the clipState flag are set (ClipState.Start or ClipState.End) </param>
         /// <returns>true if clipped line is inside given clip bounds</returns>
-        static bool CohenSutherlandLineClip(ref double x0, ref double y0, ref double x1, ref double y1, ref ClipBounds clipBounds, out ClipState clipState)
+        private static bool CohenSutherlandLineClip(ref double x0, ref double y0, ref double x1, ref double y1, ref ClipBounds clipBounds, out ClipState clipState)
         {
             // compute outcodes for P0, P1, and whatever point lies outside the clip rectangle
             OutCode outcode0 = ComputeOutCode(x0, y0, ref clipBounds);
@@ -885,38 +834,6 @@ namespace EGIS.Web.Controls
             return accept;
         }
 
-
         #endregion
-    }
-
-    class DoubleFormatConverter : JsonConverter
-    {
-        private string formatString = "{0:F2}";
-
-        public DoubleFormatConverter(int decimalPlaces)
-            : base()
-        {
-            decimalPlaces = Math.Max(0, decimalPlaces);
-            formatString = "F" + decimalPlaces;
-        }
-
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(double);
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            // writer.WriteRawValue($"{value:0.00}");
-            //double doubleValue = (double)value;
-            writer.WriteRawValue(((double)value).ToString(formatString, System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        public override bool CanRead => false;
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
