@@ -109,13 +109,13 @@ namespace ShpToMapboxVT
         /// <param name="includedAttributes">List of attributes to export. If null all attributes will be output</param>
         public void Process(string shapeFileName, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
-            ShapeFileFeatureLayer shapeFile = new ShapeFileFeatureLayer(shapeFileName);
+            ShapeFileFeatureSource shapeFile = new ShapeFileFeatureSource(shapeFileName);
             shapeFile.Open();
 
             VectorTileGenerator generator = new VectorTileGenerator()
             {
                 TileSize = TileSize,
-                SimplificationPixelThreshold = 1
+                SimplificationFactor = 1
             };
 
             Process(shapeFile, generator, cancellationToken, includedAttributes);
@@ -150,7 +150,7 @@ namespace ShpToMapboxVT
             }
         }
 
-        private void Process(ShapeFileFeatureLayer shapeFile, EGIS.Web.Controls.VectorTileGenerator generator, CancellationToken cancellationToken, List<string> includedAttributes = null)
+        private void Process(ShapeFileFeatureSource shapeFile, EGIS.Web.Controls.VectorTileGenerator generator, CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             int zoom = Math.Max(StartZoomLevel, 0);
             int endZoomLevel = Math.Min(Math.Max(zoom, EndZoomLevel), 49);
@@ -194,7 +194,7 @@ namespace ShpToMapboxVT
         }
 
 
-        private void ProcessTileRecursive(ShapeFileFeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, EGIS.Web.Controls.VectorTileGenerator generator, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
+        private void ProcessTileRecursive(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, EGIS.Web.Controls.VectorTileGenerator generator, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             if (cancellationToken.IsCancellationRequested) return;
             bool result = ProcessTile(shapeFile, tileX, tileY, zoom, generator, includedAttributes);
@@ -219,10 +219,10 @@ namespace ShpToMapboxVT
             }
         }
 
-        private bool ProcessTile(ShapeFileFeatureLayer shapeFile, int tileX, int tileY, int zoom, EGIS.Web.Controls.VectorTileGenerator generator, List<string> includedAttributes = null)
+        private bool ProcessTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, EGIS.Web.Controls.VectorTileGenerator generator, List<string> includedAttributes = null)
         {
             ++processTileCount;
-            List<ShapeFileFeatureLayer> layers = new List<ShapeFileFeatureLayer>();
+            List<ShapeFileFeatureSource> layers = new List<ShapeFileFeatureSource>();
             layers.Add(shapeFile);
             var vectorTile = generator.Generate(tileX, tileY, zoom, layers);
             if (vectorTile != null && vectorTile.Count > 0)
