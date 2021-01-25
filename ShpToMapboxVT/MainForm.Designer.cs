@@ -38,14 +38,10 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.label1 = new System.Windows.Forms.Label();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
-            this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.txtInputShapeFile = new System.Windows.Forms.TextBox();
             this.btnBrowseShapeFile = new System.Windows.Forms.Button();
             this.btnBrowseOutputDirectory = new System.Windows.Forms.Button();
-            this.txtOutputDirectory = new System.Windows.Forms.TextBox();
+            this.txtMbtilesFilePathname = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.nudStartZoom = new System.Windows.Forms.NumericUpDown();
             this.label3 = new System.Windows.Forms.Label();
@@ -53,17 +49,20 @@
             this.nudEndZoom = new System.Windows.Forms.NumericUpDown();
             this.btnProcess = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btnDisplay = new System.Windows.Forms.Button();
+            this.rtbOutput = new System.Windows.Forms.RichTextBox();
             this.btnSelectNoAttributes = new System.Windows.Forms.Button();
             this.btnSelectAllAttributes = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
             this.clbSelectedAttributes = new System.Windows.Forms.CheckedListBox();
-            this.rtbOutput = new System.Windows.Forms.RichTextBox();
             this.ofdShapeFile = new System.Windows.Forms.OpenFileDialog();
-            this.fbdOutput = new System.Windows.Forms.FolderBrowserDialog();
-            this.menuStrip1.SuspendLayout();
+            this.sfdMbtiles = new System.Windows.Forms.SaveFileDialog();
+            this.mapView1 = new ThinkGeo.UI.WinForms.MapView();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
             ((System.ComponentModel.ISupportInitialize)(this.nudStartZoom)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudEndZoom)).BeginInit();
             this.groupBox1.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -77,43 +76,11 @@
             // 
             // menuStrip1
             // 
-            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.fileToolStripMenuItem,
-            this.helpToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(615, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1204, 24);
             this.menuStrip1.TabIndex = 1;
             this.menuStrip1.Text = "menuStrip1";
-            // 
-            // fileToolStripMenuItem
-            // 
-            this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.exitToolStripMenuItem});
-            this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
-            this.fileToolStripMenuItem.Text = "File";
-            // 
-            // exitToolStripMenuItem
-            // 
-            this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(93, 22);
-            this.exitToolStripMenuItem.Text = "Exit";
-            this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
-            // 
-            // helpToolStripMenuItem
-            // 
-            this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.aboutToolStripMenuItem});
-            this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
-            this.helpToolStripMenuItem.Text = "Help";
-            // 
-            // aboutToolStripMenuItem
-            // 
-            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
-            this.aboutToolStripMenuItem.Text = "About";
             // 
             // txtInputShapeFile
             // 
@@ -121,48 +88,48 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.txtInputShapeFile.Location = new System.Drawing.Point(93, 22);
             this.txtInputShapeFile.Name = "txtInputShapeFile";
-            this.txtInputShapeFile.Size = new System.Drawing.Size(411, 20);
+            this.txtInputShapeFile.Size = new System.Drawing.Size(1051, 20);
             this.txtInputShapeFile.TabIndex = 2;
             // 
             // btnBrowseShapeFile
             // 
             this.btnBrowseShapeFile.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnBrowseShapeFile.Location = new System.Drawing.Point(510, 21);
+            this.btnBrowseShapeFile.Location = new System.Drawing.Point(1150, 21);
             this.btnBrowseShapeFile.Name = "btnBrowseShapeFile";
-            this.btnBrowseShapeFile.Size = new System.Drawing.Size(75, 23);
+            this.btnBrowseShapeFile.Size = new System.Drawing.Size(24, 23);
             this.btnBrowseShapeFile.TabIndex = 3;
-            this.btnBrowseShapeFile.Text = "Browse";
+            this.btnBrowseShapeFile.Text = "...";
             this.btnBrowseShapeFile.UseVisualStyleBackColor = true;
             this.btnBrowseShapeFile.Click += new System.EventHandler(this.btnBrowseShapeFile_Click);
             // 
             // btnBrowseOutputDirectory
             // 
             this.btnBrowseOutputDirectory.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnBrowseOutputDirectory.Location = new System.Drawing.Point(510, 56);
+            this.btnBrowseOutputDirectory.Location = new System.Drawing.Point(1150, 46);
             this.btnBrowseOutputDirectory.Name = "btnBrowseOutputDirectory";
-            this.btnBrowseOutputDirectory.Size = new System.Drawing.Size(75, 23);
+            this.btnBrowseOutputDirectory.Size = new System.Drawing.Size(24, 23);
             this.btnBrowseOutputDirectory.TabIndex = 6;
-            this.btnBrowseOutputDirectory.Text = "Browse";
+            this.btnBrowseOutputDirectory.Text = "...";
             this.btnBrowseOutputDirectory.UseVisualStyleBackColor = true;
-            this.btnBrowseOutputDirectory.Click += new System.EventHandler(this.btnBrowseOutputDirectory_Click);
+            this.btnBrowseOutputDirectory.Click += new System.EventHandler(this.btnBrowseOutputFilePathname_Click);
             // 
-            // txtOutputDirectory
+            // txtMbtilesFilePathname
             // 
-            this.txtOutputDirectory.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.txtMbtilesFilePathname.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtOutputDirectory.Location = new System.Drawing.Point(93, 57);
-            this.txtOutputDirectory.Name = "txtOutputDirectory";
-            this.txtOutputDirectory.Size = new System.Drawing.Size(411, 20);
-            this.txtOutputDirectory.TabIndex = 5;
+            this.txtMbtilesFilePathname.Location = new System.Drawing.Point(93, 48);
+            this.txtMbtilesFilePathname.Name = "txtMbtilesFilePathname";
+            this.txtMbtilesFilePathname.Size = new System.Drawing.Size(1051, 20);
+            this.txtMbtilesFilePathname.TabIndex = 5;
             // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(6, 61);
+            this.label2.Location = new System.Drawing.Point(6, 51);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(84, 13);
+            this.label2.Size = new System.Drawing.Size(74, 13);
             this.label2.TabIndex = 4;
-            this.label2.Text = "Output Directory";
+            this.label2.Text = "Output mbtiles";
             // 
             // nudStartZoom
             // 
@@ -188,7 +155,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(9, 129);
+            this.label4.Location = new System.Drawing.Point(9, 118);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(56, 13);
             this.label4.TabIndex = 10;
@@ -196,7 +163,7 @@
             // 
             // nudEndZoom
             // 
-            this.nudEndZoom.Location = new System.Drawing.Point(93, 127);
+            this.nudEndZoom.Location = new System.Drawing.Point(93, 116);
             this.nudEndZoom.Maximum = new decimal(new int[] {
             30,
             0,
@@ -206,17 +173,16 @@
             this.nudEndZoom.Size = new System.Drawing.Size(63, 20);
             this.nudEndZoom.TabIndex = 9;
             this.nudEndZoom.Value = new decimal(new int[] {
-            7,
+            14,
             0,
             0,
             0});
             // 
             // btnProcess
             // 
-            this.btnProcess.Anchor = System.Windows.Forms.AnchorStyles.Top;
-            this.btnProcess.Location = new System.Drawing.Point(228, 271);
+            this.btnProcess.Location = new System.Drawing.Point(12, 142);
             this.btnProcess.Name = "btnProcess";
-            this.btnProcess.Size = new System.Drawing.Size(164, 23);
+            this.btnProcess.Size = new System.Drawing.Size(144, 23);
             this.btnProcess.TabIndex = 11;
             this.btnProcess.Text = "Process";
             this.btnProcess.UseVisualStyleBackColor = true;
@@ -224,10 +190,12 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox1.Controls.Add(this.btnDisplay);
+            this.groupBox1.Controls.Add(this.rtbOutput);
             this.groupBox1.Controls.Add(this.btnSelectNoAttributes);
             this.groupBox1.Controls.Add(this.btnSelectAllAttributes);
+            this.groupBox1.Controls.Add(this.btnProcess);
             this.groupBox1.Controls.Add(this.label5);
             this.groupBox1.Controls.Add(this.clbSelectedAttributes);
             this.groupBox1.Controls.Add(this.label1);
@@ -237,19 +205,40 @@
             this.groupBox1.Controls.Add(this.nudEndZoom);
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.label3);
-            this.groupBox1.Controls.Add(this.txtOutputDirectory);
+            this.groupBox1.Controls.Add(this.txtMbtilesFilePathname);
             this.groupBox1.Controls.Add(this.nudStartZoom);
             this.groupBox1.Controls.Add(this.btnBrowseOutputDirectory);
-            this.groupBox1.Location = new System.Drawing.Point(12, 27);
+            this.groupBox1.Location = new System.Drawing.Point(12, 12);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(591, 215);
+            this.groupBox1.Size = new System.Drawing.Size(1180, 204);
             this.groupBox1.TabIndex = 12;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Options";
             // 
+            // btnDisplay
+            // 
+            this.btnDisplay.Location = new System.Drawing.Point(12, 170);
+            this.btnDisplay.Name = "btnDisplay";
+            this.btnDisplay.Size = new System.Drawing.Size(144, 23);
+            this.btnDisplay.TabIndex = 17;
+            this.btnDisplay.Text = "Display ";
+            this.btnDisplay.UseVisualStyleBackColor = true;
+            this.btnDisplay.Click += new System.EventHandler(this.btnDisplay_Click);
+            // 
+            // rtbOutput
+            // 
+            this.rtbOutput.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.rtbOutput.Location = new System.Drawing.Point(469, 83);
+            this.rtbOutput.Name = "rtbOutput";
+            this.rtbOutput.Size = new System.Drawing.Size(705, 110);
+            this.rtbOutput.TabIndex = 13;
+            this.rtbOutput.Text = "";
+            // 
             // btnSelectNoAttributes
             // 
-            this.btnSelectNoAttributes.Location = new System.Drawing.Point(398, 137);
+            this.btnSelectNoAttributes.Location = new System.Drawing.Point(388, 128);
             this.btnSelectNoAttributes.Name = "btnSelectNoAttributes";
             this.btnSelectNoAttributes.Size = new System.Drawing.Size(75, 23);
             this.btnSelectNoAttributes.TabIndex = 16;
@@ -259,7 +248,7 @@
             // 
             // btnSelectAllAttributes
             // 
-            this.btnSelectAllAttributes.Location = new System.Drawing.Point(398, 108);
+            this.btnSelectAllAttributes.Location = new System.Drawing.Point(388, 99);
             this.btnSelectAllAttributes.Name = "btnSelectAllAttributes";
             this.btnSelectAllAttributes.Size = new System.Drawing.Size(75, 23);
             this.btnSelectAllAttributes.TabIndex = 15;
@@ -270,7 +259,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(181, 92);
+            this.label5.Location = new System.Drawing.Point(181, 83);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(124, 13);
             this.label5.TabIndex = 14;
@@ -279,21 +268,10 @@
             // clbSelectedAttributes
             // 
             this.clbSelectedAttributes.FormattingEnabled = true;
-            this.clbSelectedAttributes.Location = new System.Drawing.Point(184, 108);
+            this.clbSelectedAttributes.Location = new System.Drawing.Point(174, 99);
             this.clbSelectedAttributes.Name = "clbSelectedAttributes";
             this.clbSelectedAttributes.Size = new System.Drawing.Size(208, 94);
             this.clbSelectedAttributes.TabIndex = 12;
-            // 
-            // rtbOutput
-            // 
-            this.rtbOutput.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.rtbOutput.Location = new System.Drawing.Point(12, 300);
-            this.rtbOutput.Name = "rtbOutput";
-            this.rtbOutput.Size = new System.Drawing.Size(591, 91);
-            this.rtbOutput.TabIndex = 13;
-            this.rtbOutput.Text = "";
             // 
             // ofdShapeFile
             // 
@@ -301,25 +279,53 @@
             this.ofdShapeFile.Multiselect = true;
             this.ofdShapeFile.Title = "Select Input ShapeFile";
             // 
+            // mapView1
+            // 
+            this.mapView1.BackColor = System.Drawing.Color.White;
+            this.mapView1.CurrentScale = 0D;
+            this.mapView1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mapView1.Location = new System.Drawing.Point(3, 16);
+            this.mapView1.MapFocusMode = ThinkGeo.Core.MapFocusMode.Default;
+            this.mapView1.MapResizeMode = ThinkGeo.Core.MapResizeMode.PreserveScale;
+            this.mapView1.MaximumScale = 1.7976931348623157E+308D;
+            this.mapView1.MinimumScale = 200D;
+            this.mapView1.Name = "mapView1";
+            this.mapView1.RestrictExtent = null;
+            this.mapView1.RotatedAngle = 0F;
+            this.mapView1.Size = new System.Drawing.Size(1186, 499);
+            this.mapView1.TabIndex = 13;
+            this.mapView1.Text = "mapView1";
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox2.Controls.Add(this.mapView1);
+            this.groupBox2.Location = new System.Drawing.Point(12, 223);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(1192, 518);
+            this.groupBox2.TabIndex = 14;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "groupBox2";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(615, 403);
-            this.Controls.Add(this.rtbOutput);
+            this.ClientSize = new System.Drawing.Size(1204, 753);
+            this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.btnProcess);
             this.Controls.Add(this.menuStrip1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "ShapeFile Mapbox Vector Tile Generator";
-            this.menuStrip1.ResumeLayout(false);
-            this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudStartZoom)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudEndZoom)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -329,14 +335,10 @@
 
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.MenuStrip menuStrip1;
-        private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.TextBox txtInputShapeFile;
         private System.Windows.Forms.Button btnBrowseShapeFile;
         private System.Windows.Forms.Button btnBrowseOutputDirectory;
-        private System.Windows.Forms.TextBox txtOutputDirectory;
+        private System.Windows.Forms.TextBox txtMbtilesFilePathname;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.NumericUpDown nudStartZoom;
         private System.Windows.Forms.Label label3;
@@ -346,11 +348,14 @@
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.RichTextBox rtbOutput;
         private System.Windows.Forms.OpenFileDialog ofdShapeFile;
-        private System.Windows.Forms.FolderBrowserDialog fbdOutput;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.CheckedListBox clbSelectedAttributes;
         private System.Windows.Forms.Button btnSelectNoAttributes;
         private System.Windows.Forms.Button btnSelectAllAttributes;
+        private System.Windows.Forms.SaveFileDialog sfdMbtiles;
+        private ThinkGeo.UI.WinForms.MapView mapView1;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.Button btnDisplay;
     }
 }
 

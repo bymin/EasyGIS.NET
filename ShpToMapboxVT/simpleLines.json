@@ -1,0 +1,27 @@
+{
+  "id": "thinkgeo-world-streets-light",
+  "version": 2,
+  "owner": "ThinkGeo LLC",
+  "time": "2020/02/24",
+
+  "styles": [
+    {
+      "id": "10-100",
+      "filter": "zoom > 0",
+      "styles": [
+        {
+          "line-color": "#FF0000",
+          "line-width": 1
+        }
+      ]
+    }
+  ],
+  "map-layers": [
+    {
+      "map-layer-id": "basis",
+      "style-drawing-order": [
+        "10-100"
+      ]
+    }
+  ]
+}

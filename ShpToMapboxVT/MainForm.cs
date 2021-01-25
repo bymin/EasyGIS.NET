@@ -45,14 +45,14 @@ namespace ShpToMapboxVT
             base.OnLoad(e);
             if (Properties.Settings.Default.LastOutputDir != null)
             {
-                this.txtOutputDirectory.Text = Properties.Settings.Default.LastOutputDir;
+                this.txtMbtilesFilePathname.Text = Properties.Settings.Default.LastOutputDir;
             }
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
-            Properties.Settings.Default.LastOutputDir = this.txtOutputDirectory.Text;
+            Properties.Settings.Default.LastOutputDir = this.txtMbtilesFilePathname.Text;
             Properties.Settings.Default.Save();
         }
 
@@ -81,15 +81,17 @@ namespace ShpToMapboxVT
             }
         }
 
-        private void btnBrowseOutputDirectory_Click(object sender, EventArgs e)
+        private void btnBrowseOutputFilePathname_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(this.txtOutputDirectory.Text) && System.IO.Directory.Exists(this.txtOutputDirectory.Text))
+            sfdMbtiles = new SaveFileDialog();
+            sfdMbtiles.Filter = "mbtiles|*.mbtiles";
+            if (!string.IsNullOrEmpty(this.txtMbtilesFilePathname.Text) && System.IO.File.Exists(this.txtMbtilesFilePathname.Text))
             {
-                this.fbdOutput.SelectedPath = this.txtOutputDirectory.Text;
+                this.sfdMbtiles.FileName = this.txtMbtilesFilePathname.Text;
             }
-            if (this.fbdOutput.ShowDialog(this) == DialogResult.OK)
+            if (this.sfdMbtiles.ShowDialog(this) == DialogResult.OK)
             {
-                this.txtOutputDirectory.Text = fbdOutput.SelectedPath;
+                this.txtMbtilesFilePathname.Text = sfdMbtiles.FileName;
                 ValidateCanProcess();
             }
         }
@@ -108,10 +110,11 @@ namespace ShpToMapboxVT
                     try
                     {
                         await GenerateTiles();
-                        string resultFile = Path.Combine(txtOutputDirectory.Text, "result.mbtiles");
+                        string resultFile = txtMbtilesFilePathname.Text;
                         if (File.Exists(resultFile))
                             File.Delete(resultFile);
-                        await GenerateMbTiles(resultFile, txtOutputDirectory.Text, (int)(nudEndZoom.Value));
+                        await GenerateMbTiles(resultFile, (int)(nudEndZoom.Value));
+                      
                     }
                     finally
                     {
@@ -143,7 +146,7 @@ namespace ShpToMapboxVT
         }
         private void ValidateCanProcess()
         {
-            this.btnProcess.Enabled = (!string.IsNullOrEmpty(this.txtOutputDirectory.Text) && System.IO.Directory.Exists(this.txtOutputDirectory.Text))
+            this.btnProcess.Enabled = (!string.IsNullOrEmpty(this.txtMbtilesFilePathname.Text))
                 && (!string.IsNullOrEmpty(this.txtInputShapeFile.Text) && System.IO.File.Exists(this.txtInputShapeFile.Text));
         }
 
@@ -173,7 +176,7 @@ namespace ShpToMapboxVT
             {
                 TileGenerator generator = new TileGenerator()
                 {
-                    BaseOutputDirectory = this.txtOutputDirectory.Text,
+                    BaseOutputDirectory = Path.GetDirectoryName(this.txtMbtilesFilePathname.Text),
                     StartZoomLevel = (int)nudStartZoom.Value,
                     EndZoomLevel = (int)nudEndZoom.Value,
                 };
@@ -212,7 +215,7 @@ namespace ShpToMapboxVT
             return zippedBytes;
         }
 
-        private async Task GenerateMbTiles(string targetFilePath, string sourceDirectory, int maxZoom)
+        private async Task GenerateMbTiles(string targetFilePath, int maxZoom)
         {
             ShapeFileFeatureLayer.BuildIndexFile(txtInputShapeFile.Text, BuildIndexMode.DoNotRebuild);
             ShapeFileFeatureLayer layer = new ShapeFileFeatureLayer(txtInputShapeFile.Text);
@@ -246,7 +249,7 @@ namespace ShpToMapboxVT
 
             await Task.Run(() =>
             {
-                string[] files = Directory.GetFiles(sourceDirectory, "*.mvt");
+                string[] files = Directory.GetFiles(Path.GetDirectoryName(targetFilePath), "*.mvt");
                 long index = 0;
 
                 List<TilesEntry> entries = new List<TilesEntry>();
@@ -282,6 +285,30 @@ namespace ShpToMapboxVT
                 }
                 targetMap.Insert(entries);
             });
+        }
+
+        private void btnDisplay_Click(object sender, EventArgs e)
+        {
+            ShapeFileFeatureLayer shapeFileFeatureLayer = new ShapeFileFeatureLayer(txtInputShapeFile.Text);
+            shapeFileFeatureLayer.ZoomLevelSet.ZoomLevel01.DefaultAreaStyle = AreaStyle.CreateSimpleAreaStyle(GeoColors.LightYellow, GeoColors.Black);
+            shapeFileFeatureLayer.ZoomLevelSet.ZoomLevel01.DefaultLineStyle = LineStyle.CreateSimpleLineStyle(GeoColors.Black, 2, true);
+            shapeFileFeatureLayer.ZoomLevelSet.ZoomLevel01.DefaultPointStyle = PointStyle.CreateSimpleCircleStyle(GeoColors.Transparent, 7, GeoColors.Black);
+            shapeFileFeatureLayer.ZoomLevelSet.ZoomLevel01.ApplyUntilZoomLevel = ApplyUntilZoomLevel.Level20;
+
+            LayerOverlay layerOverlay1 = new LayerOverlay();
+            layerOverlay1.Layers.Add(shapeFileFeatureLayer);
+              mapView1.Overlays.Add(layerOverlay1);
+
+            ThinkGeoMBTilesLayer thinkgeoMbTilesLayer = new ThinkGeoMBTilesLayer(txtMbtilesFilePathname.Text, new Uri(@"./simpleLines.json", UriKind.Relative));
+            LayerOverlay layerOverlay2 = new LayerOverlay();
+            layerOverlay2.Layers.Add(thinkgeoMbTilesLayer);
+            mapView1.Overlays.Add(layerOverlay2);
+
+            mapView1.MapUnit = GeographyUnit.Meter;
+            shapeFileFeatureLayer.Open();
+            mapView1.CurrentExtent = shapeFileFeatureLayer.GetBoundingBox();
+
+            mapView1.Refresh();
         }
     }
 }
