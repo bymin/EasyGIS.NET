@@ -68,6 +68,7 @@ namespace ShpToMapboxVT
                 this.txtInputShapeFile.Text = ofdShapeFile.FileName;
 
                 // load the column names
+                ShapeFileFeatureSource.BuildIndexFile(ofdShapeFile.FileName, BuildIndexMode.DoNotRebuild);
                 ShapeFileFeatureLayer sf = new ShapeFileFeatureLayer(ofdShapeFile.FileName);
                 sf.Open();
                 clbSelectedAttributes.Items.Clear();
@@ -218,8 +219,15 @@ namespace ShpToMapboxVT
         private async Task GenerateMbTiles(string targetFilePath, int maxZoom)
         {
             ShapeFileFeatureLayer.BuildIndexFile(txtInputShapeFile.Text, BuildIndexMode.DoNotRebuild);
-            ShapeFileFeatureLayer layer = new ShapeFileFeatureLayer(txtInputShapeFile.Text);
+            ShapeFileFeatureSource layer = new ShapeFileFeatureSource(txtInputShapeFile.Text);
             layer.Open();
+
+            if (layer.Projection != null)
+            {
+                layer.ProjectionConverter = new ProjectionConverter(layer.Projection.ProjString, 3857);
+                layer.ProjectionConverter.Open();
+            }
+
             RectangleShape extent = layer.GetBoundingBox();
             layer.Close();
 
@@ -294,6 +302,16 @@ namespace ShpToMapboxVT
             shapeFileFeatureLayer.ZoomLevelSet.ZoomLevel01.DefaultLineStyle = LineStyle.CreateSimpleLineStyle(GeoColors.Black, 2, true);
             shapeFileFeatureLayer.ZoomLevelSet.ZoomLevel01.DefaultPointStyle = PointStyle.CreateSimpleCircleStyle(GeoColors.Transparent, 7, GeoColors.Black);
             shapeFileFeatureLayer.ZoomLevelSet.ZoomLevel01.ApplyUntilZoomLevel = ApplyUntilZoomLevel.Level20;
+
+            shapeFileFeatureLayer.Open();
+
+            if (shapeFileFeatureLayer.Projection != null)
+            {
+                shapeFileFeatureLayer.FeatureSource.ProjectionConverter = new ProjectionConverter(shapeFileFeatureLayer.Projection.ProjString, 3857);
+                shapeFileFeatureLayer.FeatureSource.ProjectionConverter.Open();
+            }
+
+
 
             LayerOverlay layerOverlay1 = new LayerOverlay();
             layerOverlay1.Layers.Add(shapeFileFeatureLayer);

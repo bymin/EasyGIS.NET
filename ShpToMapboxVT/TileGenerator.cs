@@ -112,6 +112,13 @@ namespace ShpToMapboxVT
             ShapeFileFeatureSource shapeFile = new ShapeFileFeatureSource(shapeFileName);
             shapeFile.Open();
 
+
+            if (shapeFile.Projection != null)
+            {
+                shapeFile.ProjectionConverter = new ProjectionConverter(shapeFile.Projection.ProjString, 3857);
+                shapeFile.ProjectionConverter.Open();
+            }
+
             VectorTileGenerator generator = new VectorTileGenerator()
             {
                 TileSize = TileSize,

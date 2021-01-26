@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <PackageReference Include="GeoJSON.Net" Version="1.1.70" />
+    <PackageReference Include="Microsoft.QualityTools.Testing.Fakes" Version="16.7.4-beta.20330.2" />
     <PackageReference Include="protobuf-net" Version="2.4.6" />
     <PackageReference Include="ThinkGeo.Core" Version="12.3.2" />
   </ItemGroup>
@@ -43,6 +44,10 @@
   
   <ItemGroup>
     <Folder Include="Extensions\" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <AdditionalDesignTimeBuildInput Remove="FakesAssemblies\**" />
   </ItemGroup>
 
 </Project>

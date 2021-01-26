@@ -468,7 +468,6 @@ namespace EGIS.Web.Controls
 
         private PointI[] SimplifyPointData(PointI[] points, int simplificationFactor)
         {
-
             //check for duplicates points at end after they have been converted to pixel coordinates
             //polygons need at least 3 points so don't reduce less than this
             int pointCount = points.Length;
