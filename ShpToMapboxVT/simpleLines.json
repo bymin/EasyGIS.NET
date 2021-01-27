@@ -6,7 +6,21 @@
 
   "styles": [
     {
-      "id": "10-100",
+      "id": "point",
+      "filter": "zoom > 0",
+      "styles": [
+        {
+          "point-type": "symbol",
+          "point-symbol-type": "Circle",
+          "point-size": 20,
+          "point-outline-color": "#000000",
+          "point-outline-width": 3,
+          "point-fill-color": "#FF0000"
+        }
+      ]
+    },
+    {
+      "id": "line",
       "filter": "zoom > 0",
       "styles": [
         {
@@ -20,7 +34,7 @@
     {
       "map-layer-id": "basis",
       "style-drawing-order": [
-        "10-100"
+        "line","point"
       ]
     }
   ]

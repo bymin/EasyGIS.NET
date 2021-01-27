@@ -208,7 +208,8 @@ namespace EGIS.Web.Controls
                 {
                     Id = featureId,
                     Geometry = new List<List<Coordinate>>(),
-                    Attributes = new List<AttributeKeyValue>()
+                    Attributes = new List<AttributeKeyValue>(),
+                    GeometryType = Mapbox.Vector.Tile.Tile.GeomType.LineString
                 };
 
                 //get the point data
@@ -220,7 +221,7 @@ namespace EGIS.Web.Controls
                     PointI[] pixelPoints = new PointI[line.Vertices.Count];
                     for (int n = 0; n < line.Vertices.Count; ++n)
                     {
-                        pixelPoints[n] = LLToPixel2(line.Vertices[n], zoom, tileX, tileY, tileSize);
+                        pixelPoints[n] = LLToPixel2(line.Vertices[n].X, line.Vertices[n].Y, zoom, tileX, tileY, tileSize);
                     }
 
                     PointI[] simplifiedPixelPoints = SimplifyPointData(pixelPoints, SimplificationFactor);
@@ -389,81 +390,75 @@ namespace EGIS.Web.Controls
 
         private VectorTileLayer ProcessPointTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom)
         {
-            //int tileSize = TileSize;
-            ////      RectangleD tileBounds = TileUtil.GetTileLatLonBounds(tileX, tileY, zoom, tileSize);
-            //RectangleD tileBounds = TileUtil.GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
-            ////create a buffer around the tileBounds 
-            //tileBounds.Inflate(tileBounds.Width * 0.05, tileBounds.Height * 0.05);
+            int tileSize = TileSize;
+            RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
+            tileBounds.ScaleUp(5);
 
-            //int simplificationFactor = Math.Min(10, Math.Max(1, SimplificationPixelThreshold));
+            Collection<string> featureIds = shapeFile.GetFeatureIdsInsideBoundingBox(tileBounds);
+            ClipBounds clipBounds = new ClipBounds()
+            {
+                XMin = -20,
+                YMin = -20,
+                XMax = tileSize + 20,
+                YMax = tileSize + 20
+            };
 
-            //System.Drawing.Point tilePixelOffset = new System.Drawing.Point((tileX * tileSize), (tileY * tileSize));
-
-            //List<int> indicies = new List<int>();
-            //shapeFile.GetShapeIndiciesIntersectingRect(indicies, tileBounds);
-            //GeometryAlgorithms.ClipBounds clipBounds = new GeometryAlgorithms.ClipBounds()
-            //{
-            //    XMin = -20,
-            //    YMin = -20,
-            //    XMax = tileSize + 20,
-            //    YMax = tileSize + 20
-            //};
+            VectorTileLayer tileLayer = new VectorTileLayer();
+            tileLayer.Extent = (uint)tileSize;
+            tileLayer.Version = 2;
+            tileLayer.Name = Path.GetFileNameWithoutExtension(shapeFile.ShapePathFilename);
 
 
-            //VectorTileLayer tileLayer = new VectorTileLayer();
-            //tileLayer.Extent = (uint)tileSize;
-            //tileLayer.Version = 2;
-            //tileLayer.Name = !string.IsNullOrEmpty(shapeFile.Name) ? shapeFile.Name : System.IO.Path.GetFileNameWithoutExtension(shapeFile.FilePath);
+            foreach (string featureId in featureIds)
+            {
+                VectorTileFeature tileFeature = new VectorTileFeature()
+                {
+                    Id = featureId,
+                    Geometry = new List<List<Coordinate>>(),
+                    Attributes = new List<AttributeKeyValue>(),
+                    GeometryType = Mapbox.Vector.Tile.Tile.GeomType.Point
+                };
 
-            //if (indicies.Count > 0)
-            //{
-            //    foreach (int index in indicies)
-            //    {
-            //        if (outputTileFeature != null && !outputTileFeature(shapeFile, index, zoom, tileX, tileY)) continue;
+                //output the pixel coordinates                                                                                             
+                List<Coordinate> coordinates = new List<Coordinate>();
+                //get the point data
+                Feature feature = shapeFile.GetFeatureById(featureId, ReturningColumnsType.NoColumns);
 
-            //        VectorTileFeature feature = new VectorTileFeature()
-            //        {
-            //            Id = index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            //            Geometry = new List<List<Coordinate>>(),
-            //            Attributes = new List<AttributeKeyValue>(),
-            //            GeometryType = Tile.GeomType.Point
-            //        };
+                MultipointShape multiPointShape = new MultipointShape();
 
-            //        //output the pixel coordinates                                                                                             
-            //        List<Coordinate> coordinates = new List<Coordinate>();
-            //        //get the point data
-            //        var recordPoints = shapeFile.GetShapeDataD(index);
-            //        foreach (PointD[] points in recordPoints)
-            //        {
-            //            for (int n = 0; n < points.Length; ++n)
-            //            {
-            //                Int64 x, y;
-            //                TileUtil.LLToPixel2(points[n], zoom, tileX, tileY, out x, out y, tileSize);
-            //                coordinates.Add(new Coordinate((int)(x), (int)(y)));
-            //            }
-            //        }
-            //        if (coordinates.Count > 0)
-            //        {
-            //            feature.Geometry.Add(coordinates);
-            //        }
+                if (feature.GetWellKnownType() == WellKnownType.Point)
+                {
+                    PointShape pointShape = new PointShape(feature.GetWellKnownBinary());
+                    multiPointShape.Points.Add(pointShape);
+                }
+                else if (feature.GetWellKnownType() == WellKnownType.Multipoint)
+                {
+                    multiPointShape = new MultipointShape(feature.GetWellKnownBinary());
+                }
 
-            //        //add the record attributes
-            //        string[] fieldNames = shapeFile.GetAttributeFieldNames();
-            //        string[] values = shapeFile.GetAttributeFieldValues(index);
-            //        for (int n = 0; n < values.Length; ++n)
-            //        {
-            //            feature.Attributes.Add(new AttributeKeyValue(fieldNames[n], values[n].Trim()));
-            //        }
+                foreach (PointShape point in multiPointShape.Points)
+                {
+                    PointI pointI = LLToPixel2(point.X, point.Y, zoom, tileX, tileY, tileSize);
+                    coordinates.Add(new Coordinate(pointI.X, pointI.Y));
+                }
+                if (coordinates.Count > 0)
+                {
+                    tileFeature.Geometry.Add(coordinates);
+                }
 
-            //        if (feature.Geometry.Count > 0)
-            //        {
-            //            tileLayer.VectorTileFeatures.Add(feature);
-            //        }
-            //    }
-            //}
+                //add the record attributes
+                foreach (var attributes in feature.ColumnValues)
+                {
+                    tileFeature.Attributes.Add(new AttributeKeyValue(attributes.Key, attributes.Value));
+                }
 
-            // return tileLayer;
-            return null;
+                if (tileFeature.Geometry.Count > 0)
+                {
+                    tileLayer.VectorTileFeatures.Add(tileFeature);
+                }
+            }
+
+            return tileLayer;
         }
 
         private PointI[] SimplifyPointData(PointI[] points, int simplificationFactor)
@@ -666,7 +661,7 @@ namespace EGIS.Web.Controls
                 resultPoints[reducedPointIndicies.Count] = endPoint;
             }
 
-                        return resultPoints;
+            return resultPoints;
         }
 
         private static void PolyLineClip(PointI[] input, ClipBounds clipBounds, List<int> clippedPoints, List<int> parts)
@@ -694,7 +689,7 @@ namespace EGIS.Web.Controls
 
         }
 
-        private static PointI LLToPixel2(Vertex sphericalMercator, int zoomLevel, int tileX, int tileY, int tileSize = 256)
+        private static PointI LLToPixel2(double pointX, double pointY, int zoomLevel, int tileX, int tileY, int tileSize = 256)
         {
             string key = $"{zoomLevel}-{tileX}-{tileY}";
             if (!dictionaryCache.ContainsKey(key))
@@ -711,8 +706,8 @@ namespace EGIS.Web.Controls
             double scale = ((double)tileSize / 40075016.4629396) * (1 << zoomLevel);
             PointI result = new PointI()
             {
-                X = (int)Math.Round((sphericalMercator.X - bbox.LowerLeftPoint.X) * scale),
-                Y = (int)Math.Round((bbox.UpperLeftPoint.Y - sphericalMercator.Y) * scale)
+                X = (int)Math.Round((pointX - bbox.LowerLeftPoint.X) * scale),
+                Y = (int)Math.Round((bbox.UpperLeftPoint.Y - pointY) * scale)
             };
 
             return result;
