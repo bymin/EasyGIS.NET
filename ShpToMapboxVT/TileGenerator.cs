@@ -203,6 +203,7 @@ namespace ShpToMapboxVT
 
         private void ProcessTileRecursive(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, EGIS.Web.Controls.VectorTileGenerator generator, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
+            Console.WriteLine($"Tile: {zoom}-{tileX}-{tileY}");
             if (cancellationToken.IsCancellationRequested) return;
             bool result = ProcessTile(shapeFile, tileX, tileY, zoom, generator, includedAttributes);
 
