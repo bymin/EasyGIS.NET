@@ -40,22 +40,6 @@ namespace ShpToMapboxVT
             InitializeComponent();
         }
 
-        protected override void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
-            if (Properties.Settings.Default.LastOutputDir != null)
-            {
-                this.txtMbtilesFilePathname.Text = Properties.Settings.Default.LastOutputDir;
-            }
-        }
-
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            base.OnClosing(e);
-            Properties.Settings.Default.LastOutputDir = this.txtMbtilesFilePathname.Text;
-            Properties.Settings.Default.Save();
-        }
-
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Close();
@@ -77,8 +61,9 @@ namespace ShpToMapboxVT
                 {
                     clbSelectedAttributes.Items.Add(name, false);
                 }
-                ValidateCanProcess();
                 sf.Close();
+                txtMbtilesFilePathname.Text = txtInputShapeFile.Text.ToLower().Replace(".shp", ".mbtiles");
+                ValidateCanProcess();
             }
         }
 
@@ -114,7 +99,7 @@ namespace ShpToMapboxVT
                         string resultFile = txtMbtilesFilePathname.Text;
                         if (File.Exists(resultFile))
                             File.Delete(resultFile);
-                        await GenerateMbTiles(resultFile, (int)(nudEndZoom.Value));
+                        await GenerateMbTiles(resultFile, (int)(nudStartZoom.Value), (int)(nudEndZoom.Value));
 
                     }
                     finally
@@ -216,7 +201,7 @@ namespace ShpToMapboxVT
             return zippedBytes;
         }
 
-        private async Task GenerateMbTiles(string targetFilePath, int maxZoom)
+        private async Task GenerateMbTiles(string targetFilePath, int minZoom, int maxZoom)
         {
             ShapeFileFeatureLayer.BuildIndexFile(txtInputShapeFile.Text, BuildIndexMode.DoNotRebuild);
             ShapeFileFeatureSource layer = new ShapeFileFeatureSource(txtInputShapeFile.Text);
@@ -232,7 +217,7 @@ namespace ShpToMapboxVT
             layer.Close();
 
             PointShape centerPoint = extent.GetCenterPoint();
-            string center = $"{centerPoint.X},{centerPoint.Y},{maxZoom}";
+            string center = $"{centerPoint.X},{centerPoint.Y},{maxZoom}";   
             string bounds = $"{extent.UpperLeftPoint.X},{extent.UpperLeftPoint.Y},{extent.LowerRightPoint.X},{extent.LowerRightPoint.Y}";
 
             ThinkGeoMBTilesLayer.CreateDatabase(targetFilePath);
@@ -247,8 +232,8 @@ namespace ShpToMapboxVT
             Entries.Add(new MetadataEntry() { Name = "format", Value = "pbf" });
             Entries.Add(new MetadataEntry() { Name = "bounds", Value = bounds }); //"-96.85310250357627,33.10809235525063,-96.85260897712004,33.107616047247156"
             Entries.Add(new MetadataEntry() { Name = "center", Value = center }); // "-96.85285574034816,33.1078542012489,14"
-            Entries.Add(new MetadataEntry() { Name = "minzoom", Value = "0" });
-            Entries.Add(new MetadataEntry() { Name = "maxzoom", Value = "${maxZoom}" });
+            Entries.Add(new MetadataEntry() { Name = "minzoom", Value = $"{minZoom}" });
+            Entries.Add(new MetadataEntry() { Name = "maxzoom", Value = $"{maxZoom}" });
             Entries.Add(new MetadataEntry() { Name = "attribution", Value = "Copyright @2020 ThinkGeo LLC.All rights reserved." });
             Entries.Add(new MetadataEntry() { Name = "description", Value = "ThinkGeo World Street Vector Tile Data in EPSG:3857" });
             Entries.Add(new MetadataEntry() { Name = "version", Value = "2.0" });
@@ -311,14 +296,14 @@ namespace ShpToMapboxVT
                 shapeFileFeatureLayer.FeatureSource.ProjectionConverter.Open();
             }
 
-            LayerOverlay shapeFileOverlay = new LayerOverlay();
+            LayerOverlay shapeFileOverlay = (LayerOverlay)(mapView1.Overlays["shapeFileOverlay"]);
+            shapeFileOverlay.TileBuffer = 0;
             shapeFileOverlay.Layers.Add(shapeFileFeatureLayer);
-            mapView1.Overlays.Add("shapeFileOverlay", shapeFileOverlay);
 
             ThinkGeoMBTilesLayer thinkGeoMBTilesLayer = new ThinkGeoMBTilesLayer(txtMbtilesFilePathname.Text, new Uri(@"./SimpleRenderer.json", UriKind.Relative));
-              LayerOverlay mbtilesOverlay = new LayerOverlay();
+            LayerOverlay mbtilesOverlay = (LayerOverlay)(mapView1.Overlays["mbtilesOverlay"]);
+            mbtilesOverlay.TileBuffer = 0;
             mbtilesOverlay.Layers.Add(thinkGeoMBTilesLayer);
-            mapView1.Overlays.Add("mbtilesOverlay", mbtilesOverlay);
 
             mapView1.MapUnit = GeographyUnit.Meter;
             shapeFileFeatureLayer.Open();
@@ -334,7 +319,15 @@ namespace ShpToMapboxVT
         {
             mapView1.Overlays["shapeFileOverlay"].IsVisible = ckbDisplayShapeFile.Checked;
             mapView1.Overlays["mbtilesOverlay"].IsVisible = ckbDisplayMbtiles.Checked;
-            mapView1.Refresh();
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            LayerOverlay shapeFileOverlay = new LayerOverlay();
+            mapView1.Overlays.Add("shapeFileOverlay", shapeFileOverlay);
+
+            LayerOverlay mbtilesOverlay = new LayerOverlay();
+            mapView1.Overlays.Add("mbtilesOverlay", mbtilesOverlay);
         }
     }
 }

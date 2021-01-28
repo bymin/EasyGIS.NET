@@ -7,7 +7,7 @@
   "styles": [
     {
       "id": "point",
-      "filter": "zoom > 0",
+      "filter": "zoom >= 0",
       "styles": [
         {
           "point-type": "symbol",
@@ -21,7 +21,7 @@
     },
     {
       "id": "line",
-      "filter": "zoom > 0",
+      "filter": "zoom >= 0",
       "styles": [
         {
           "line-color": "#FF0000",
@@ -31,12 +31,12 @@
     },
     {
       "id": "polygon",
-      "filter": "zoom > 0",
+      "filter": "zoom >= 0",
       "styles": [
         {
           "polygon-outline-color": "#FF0000",
           "polygon-outline-width": 2,
-          "polygon-fill": "#0000FF"
+          "polygon-fill-color": "#00FFFF"
         }
       ]
     }

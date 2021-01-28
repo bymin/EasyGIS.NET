@@ -59,8 +59,8 @@
             this.sfdMbtiles = new System.Windows.Forms.SaveFileDialog();
             this.mapView1 = new ThinkGeo.UI.WinForms.MapView();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.ckbDisplayShapeFile = new System.Windows.Forms.CheckBox();
             this.ckbDisplayMbtiles = new System.Windows.Forms.CheckBox();
+            this.ckbDisplayShapeFile = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.nudStartZoom)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudEndZoom)).BeginInit();
             this.groupBox1.SuspendLayout();
@@ -313,20 +313,6 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "groupBox2";
             // 
-            // ckbDisplayShapeFile
-            // 
-            this.ckbDisplayShapeFile.AutoSize = true;
-            this.ckbDisplayShapeFile.Checked = true;
-            this.ckbDisplayShapeFile.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.ckbDisplayShapeFile.Enabled = false;
-            this.ckbDisplayShapeFile.Location = new System.Drawing.Point(1008, 36);
-            this.ckbDisplayShapeFile.Name = "ckbDisplayShapeFile";
-            this.ckbDisplayShapeFile.Size = new System.Drawing.Size(113, 17);
-            this.ckbDisplayShapeFile.TabIndex = 14;
-            this.ckbDisplayShapeFile.Text = "Display Shape File";
-            this.ckbDisplayShapeFile.UseVisualStyleBackColor = true;
-            this.ckbDisplayShapeFile.CheckedChanged += new System.EventHandler(this.ckbDisplayMbtiles_CheckedChanged);
-            // 
             // ckbDisplayMbtiles
             // 
             this.ckbDisplayMbtiles.AutoSize = true;
@@ -341,6 +327,20 @@
             this.ckbDisplayMbtiles.UseVisualStyleBackColor = true;
             this.ckbDisplayMbtiles.CheckedChanged += new System.EventHandler(this.ckbDisplayMbtiles_CheckedChanged);
             // 
+            // ckbDisplayShapeFile
+            // 
+            this.ckbDisplayShapeFile.AutoSize = true;
+            this.ckbDisplayShapeFile.Checked = true;
+            this.ckbDisplayShapeFile.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ckbDisplayShapeFile.Enabled = false;
+            this.ckbDisplayShapeFile.Location = new System.Drawing.Point(1008, 36);
+            this.ckbDisplayShapeFile.Name = "ckbDisplayShapeFile";
+            this.ckbDisplayShapeFile.Size = new System.Drawing.Size(113, 17);
+            this.ckbDisplayShapeFile.TabIndex = 14;
+            this.ckbDisplayShapeFile.Text = "Display Shape File";
+            this.ckbDisplayShapeFile.UseVisualStyleBackColor = true;
+            this.ckbDisplayShapeFile.CheckedChanged += new System.EventHandler(this.ckbDisplayMbtiles_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -353,6 +353,7 @@
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "ShapeFile Mapbox Vector Tile Generator";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.nudStartZoom)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudEndZoom)).EndInit();
             this.groupBox1.ResumeLayout(false);
