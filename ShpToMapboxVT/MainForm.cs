@@ -75,7 +75,7 @@ namespace ShpToMapboxVT
                 var attributeNames = sf.QueryTools.GetColumns().Select(f => f.ColumnName);
                 foreach (string name in attributeNames)
                 {
-                    clbSelectedAttributes.Items.Add(name, true);
+                    clbSelectedAttributes.Items.Add(name, false);
                 }
                 ValidateCanProcess();
                 sf.Close();
@@ -115,7 +115,7 @@ namespace ShpToMapboxVT
                         if (File.Exists(resultFile))
                             File.Delete(resultFile);
                         await GenerateMbTiles(resultFile, (int)(nudEndZoom.Value));
-                      
+
                     }
                     finally
                     {
@@ -311,21 +311,29 @@ namespace ShpToMapboxVT
                 shapeFileFeatureLayer.FeatureSource.ProjectionConverter.Open();
             }
 
+            LayerOverlay shapeFileOverlay = new LayerOverlay();
+            shapeFileOverlay.Layers.Add(shapeFileFeatureLayer);
+            mapView1.Overlays.Add("shapeFileOverlay", shapeFileOverlay);
 
-
-            LayerOverlay layerOverlay1 = new LayerOverlay();
-            layerOverlay1.Layers.Add(shapeFileFeatureLayer);
-              mapView1.Overlays.Add(layerOverlay1);
-
-            ThinkGeoMBTilesLayer thinkgeoMbTilesLayer = new ThinkGeoMBTilesLayer(txtMbtilesFilePathname.Text, new Uri(@"./SimpleRenderer.json", UriKind.Relative));
-            LayerOverlay layerOverlay2 = new LayerOverlay();
-            layerOverlay2.Layers.Add(thinkgeoMbTilesLayer);
-            mapView1.Overlays.Add(layerOverlay2);
+            ThinkGeoMBTilesLayer thinkGeoMBTilesLayer = new ThinkGeoMBTilesLayer(txtMbtilesFilePathname.Text, new Uri(@"./SimpleRenderer.json", UriKind.Relative));
+              LayerOverlay mbtilesOverlay = new LayerOverlay();
+            mbtilesOverlay.Layers.Add(thinkGeoMBTilesLayer);
+            mapView1.Overlays.Add("mbtilesOverlay", mbtilesOverlay);
 
             mapView1.MapUnit = GeographyUnit.Meter;
             shapeFileFeatureLayer.Open();
             mapView1.CurrentExtent = shapeFileFeatureLayer.GetBoundingBox();
 
+            mapView1.Refresh();
+
+            ckbDisplayShapeFile.Enabled = true;
+            ckbDisplayMbtiles.Enabled = true;
+        }
+
+        private void ckbDisplayMbtiles_CheckedChanged(object sender, EventArgs e)
+        {
+            mapView1.Overlays["shapeFileOverlay"].IsVisible = ckbDisplayShapeFile.Checked;
+            mapView1.Overlays["mbtilesOverlay"].IsVisible = ckbDisplayMbtiles.Checked;
             mapView1.Refresh();
         }
     }

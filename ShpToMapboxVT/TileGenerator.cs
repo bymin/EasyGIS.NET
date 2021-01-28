@@ -227,12 +227,12 @@ namespace ShpToMapboxVT
             }
         }
 
-        private bool ProcessTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, EGIS.Web.Controls.VectorTileGenerator generator, List<string> includedAttributes = null)
+        private bool ProcessTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, VectorTileGenerator generator, IEnumerable<string> columnNames)
         {
             ++processTileCount;
             List<ShapeFileFeatureSource> layers = new List<ShapeFileFeatureSource>();
             layers.Add(shapeFile);
-            var vectorTile = generator.Generate(tileX, tileY, zoom, layers);
+            var vectorTile = generator.Generate(tileX, tileY, zoom, layers, columnNames);
             if (vectorTile != null && vectorTile.Count > 0)
             {
                 using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))

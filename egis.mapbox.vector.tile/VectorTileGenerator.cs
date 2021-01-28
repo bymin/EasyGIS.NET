@@ -95,13 +95,13 @@ namespace EGIS.Web.Controls
         /// <param name="layers">List of ShapeFile layers</param>
         /// <param name="outputTileFeature">optional OutputTileFeatureDelegate which will be called with each record feature that will be added to the tile. This delegate is useful to exclude feaures at tile zoom levels</param>
         /// <returns></returns>
-        public virtual List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<ShapeFileFeatureSource> layers)
+        public virtual List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<ShapeFileFeatureSource> layers, IEnumerable<string> columnNames)
         {
             List<VectorTileLayer> tileLayers = new List<VectorTileLayer>();
 
             foreach (ShapeFileFeatureSource shapeFile in layers)
             {
-                var layer = ProcessTile(shapeFile, tileX, tileY, zoomLevel);
+                var layer = ProcessTile(shapeFile, tileX, tileY, zoomLevel, columnNames);
                 if (layer.VectorTileFeatures != null && layer.VectorTileFeatures.Count > 0)
                 {
                     tileLayers.Add(layer);
@@ -136,7 +136,6 @@ namespace EGIS.Web.Controls
 
         private VectorTileFeature GetVectorTileFeature(Feature feature, int tileX, int tileY, int zoom, int tileSize, ClipBounds clipBounds)
         {
-
             VectorTileFeature tileFeature = new VectorTileFeature()
             {
                 Id = feature.Id,
@@ -206,7 +205,7 @@ namespace EGIS.Web.Controls
             return tileFeature;
         }
 
-        private VectorTileLayer ProcessTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom)
+        private VectorTileLayer ProcessTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames)
         {
             int tileSize = TileSize;
             RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
@@ -229,7 +228,7 @@ namespace EGIS.Web.Controls
             foreach (string featureId in featureIds)
             {
                 //get the point data
-                Feature feature = shapeFile.GetFeatureById(featureId, ReturningColumnsType.NoColumns);
+                Feature feature = shapeFile.GetFeatureById(featureId, columnNames);
 
                 VectorTileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds);
 
@@ -302,13 +301,6 @@ namespace EGIS.Web.Controls
                 if (clippedRing.Count > 3)
                 {
                     tileFeature.Geometry.Add(clippedRing);
-                    //output the clipped polygon                                                                                             
-                    //List<PointInt> lineString = new List<PointInt>();
-                    //tileFeature.Geometry.Add(lineString);
-                    //for (int i = clippedRing.Count - 1; i >= 0; --i)
-                    //{
-                    //    lineString.Add(new PointInt(clippedRing[i].X, clippedRing[i].Y));
-                    //}
                 }
             }
         }

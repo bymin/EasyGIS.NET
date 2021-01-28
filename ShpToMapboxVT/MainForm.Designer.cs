@@ -59,6 +59,8 @@
             this.sfdMbtiles = new System.Windows.Forms.SaveFileDialog();
             this.mapView1 = new ThinkGeo.UI.WinForms.MapView();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.ckbDisplayShapeFile = new System.Windows.Forms.CheckBox();
+            this.ckbDisplayMbtiles = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.nudStartZoom)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudEndZoom)).BeginInit();
             this.groupBox1.SuspendLayout();
@@ -301,6 +303,8 @@
             this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox2.Controls.Add(this.ckbDisplayMbtiles);
+            this.groupBox2.Controls.Add(this.ckbDisplayShapeFile);
             this.groupBox2.Controls.Add(this.mapView1);
             this.groupBox2.Location = new System.Drawing.Point(12, 223);
             this.groupBox2.Name = "groupBox2";
@@ -308,6 +312,34 @@
             this.groupBox2.TabIndex = 14;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "groupBox2";
+            // 
+            // ckbDisplayShapeFile
+            // 
+            this.ckbDisplayShapeFile.AutoSize = true;
+            this.ckbDisplayShapeFile.Checked = true;
+            this.ckbDisplayShapeFile.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ckbDisplayShapeFile.Enabled = false;
+            this.ckbDisplayShapeFile.Location = new System.Drawing.Point(1008, 36);
+            this.ckbDisplayShapeFile.Name = "ckbDisplayShapeFile";
+            this.ckbDisplayShapeFile.Size = new System.Drawing.Size(113, 17);
+            this.ckbDisplayShapeFile.TabIndex = 14;
+            this.ckbDisplayShapeFile.Text = "Display Shape File";
+            this.ckbDisplayShapeFile.UseVisualStyleBackColor = true;
+            this.ckbDisplayShapeFile.CheckedChanged += new System.EventHandler(this.ckbDisplayMbtiles_CheckedChanged);
+            // 
+            // ckbDisplayMbtiles
+            // 
+            this.ckbDisplayMbtiles.AutoSize = true;
+            this.ckbDisplayMbtiles.Checked = true;
+            this.ckbDisplayMbtiles.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ckbDisplayMbtiles.Enabled = false;
+            this.ckbDisplayMbtiles.Location = new System.Drawing.Point(1008, 59);
+            this.ckbDisplayMbtiles.Name = "ckbDisplayMbtiles";
+            this.ckbDisplayMbtiles.Size = new System.Drawing.Size(96, 17);
+            this.ckbDisplayMbtiles.TabIndex = 15;
+            this.ckbDisplayMbtiles.Text = "Display Mbtiles";
+            this.ckbDisplayMbtiles.UseVisualStyleBackColor = true;
+            this.ckbDisplayMbtiles.CheckedChanged += new System.EventHandler(this.ckbDisplayMbtiles_CheckedChanged);
             // 
             // MainForm
             // 
@@ -326,6 +358,7 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -356,6 +389,8 @@
         private ThinkGeo.UI.WinForms.MapView mapView1;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.Button btnDisplay;
+        private System.Windows.Forms.CheckBox ckbDisplayMbtiles;
+        private System.Windows.Forms.CheckBox ckbDisplayShapeFile;
     }
 }
 
