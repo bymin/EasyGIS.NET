@@ -317,7 +317,7 @@ namespace ShpToMapboxVT
             layerOverlay1.Layers.Add(shapeFileFeatureLayer);
               mapView1.Overlays.Add(layerOverlay1);
 
-            ThinkGeoMBTilesLayer thinkgeoMbTilesLayer = new ThinkGeoMBTilesLayer(txtMbtilesFilePathname.Text, new Uri(@"./simpleLines.json", UriKind.Relative));
+            ThinkGeoMBTilesLayer thinkgeoMbTilesLayer = new ThinkGeoMBTilesLayer(txtMbtilesFilePathname.Text, new Uri(@"./SimpleRenderer.json", UriKind.Relative));
             LayerOverlay layerOverlay2 = new LayerOverlay();
             layerOverlay2.Layers.Add(thinkgeoMbTilesLayer);
             mapView1.Overlays.Add(layerOverlay2);

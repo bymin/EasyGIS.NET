@@ -348,12 +348,14 @@ namespace EGIS.Web.Controls
 
             //output count may be zero for short records at low zoom levels as 
             //the pixel coordinates wil be a single point after simplification
-            if (simplifiedPixelPoints.Length > 0)
+            if (simplifiedPixelPoints.Length > 3)
             {
-                List<int> clippedPoints = new List<int>();
-                List<int> parts = new List<int>();
+                if (simplifiedPixelPoints[0] != simplifiedPixelPoints[simplifiedPixelPoints.Length - 1])
+                {
+                    Console.WriteLine("Not Closed");
+                }
                 PolygonClip(simplifiedPixelPoints, clipBounds, clippedPolygon);
-                if (clippedPolygon.Count > 0)
+                if (clippedPolygon.Count > 3)
                 {
                     //output the clipped polygon                                                                                             
                     List<Coordinate> lineString = new List<Coordinate>();
@@ -461,8 +463,6 @@ namespace EGIS.Web.Controls
 
                 return resultPoints;
             }
-
-            List<int> reducedIndices = new List<int>();
 
             return SimplifyDouglasPeucker(points, simplificationFactor);
         }
@@ -676,6 +676,10 @@ namespace EGIS.Web.Controls
                 inputList[n].Y = input[n].Y;
             }
             PolygonClip(inputList, input.Length, clipBounds, outputList);
+            if (outputList.Count < 4)
+            {
+                
+            }
             clippedPolygon.Clear();
             for (int n = 0; n < outputList.Count; ++n)
             {

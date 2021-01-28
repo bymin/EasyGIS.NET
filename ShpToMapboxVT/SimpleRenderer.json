@@ -35,7 +35,8 @@
       "styles": [
         {
           "polygon-outline-color": "#FF0000",
-          "polygon-outline-width": 2
+          "polygon-outline-width": 2,
+          "polygon-fill": "#0000FF"
         }
       ]
     }
