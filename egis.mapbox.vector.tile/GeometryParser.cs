@@ -14,13 +14,13 @@ namespace EGIS.Mapbox.Vector.Tile
     {
 
 
-        public static List<List<Coordinate>> ParseGeometry(List<uint> geom, Tile.GeomType geomType)
+        public static List<List<PointInt>> ParseGeometry(List<uint> geom, Tile.GeomType geomType)
         {
             
             int x = 0;
             int y = 0;
-            var coordsList = new List<List<Coordinate>>();
-            List<Coordinate> coords = null;
+            var coordsList = new List<List<PointInt>>();
+            List<PointInt> coords = null;
             var geometryCount = geom.Count;
             uint length = 0;
             uint command = 0;
@@ -38,7 +38,7 @@ namespace EGIS.Mapbox.Vector.Tile
                 {
                     if (command == (uint)CommandId.MoveTo)
                     {
-                        coords = new List<Coordinate>();
+                        coords = new List<PointInt>();
                         coordsList.Add(coords);
                     }
                 }
@@ -64,14 +64,14 @@ namespace EGIS.Mapbox.Vector.Tile
                 x = x + ldx;
                 y = y + ldy;
 
-                var  coord = new Coordinate() { X = x, Y = y };
+                var  coord = new PointInt() { X = x, Y = y };
                 coords.Add(coord);
             }
             return coordsList;
         }
 
 
-        public static void EncodeGeometry( List<List<Coordinate>> coordList, Tile.GeomType geomType, List<System.UInt32> geometry)
+        public static void EncodeGeometry( List<List<PointInt>> coordList, Tile.GeomType geomType, List<System.UInt32> geometry)
         {
             switch (geomType)
             {
@@ -90,11 +90,11 @@ namespace EGIS.Mapbox.Vector.Tile
         }
 
 
-        private static void EncodePointGeometry(List<List<Coordinate>> coordList, List<System.UInt32> geometry)
+        private static void EncodePointGeometry(List<List<PointInt>> coordList, List<System.UInt32> geometry)
         {
-            Coordinate prevCoord = new Coordinate() { X = 0, Y = 0 };
+            PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
 
-            foreach (List<Coordinate> points in coordList)
+            foreach (List<PointInt> points in coordList)
             {
                 if (points.Count == 0) throw new System.Exception(string.Format("unexpected point count encoding point geometry. Count is {0}", points.Count));
 
@@ -113,10 +113,10 @@ namespace EGIS.Mapbox.Vector.Tile
             }          
         }
 
-        private static void EncodeLineGeometry(List<List<Coordinate>> coordList, List<System.UInt32> geometry)
+        private static void EncodeLineGeometry(List<List<PointInt>> coordList, List<System.UInt32> geometry)
         {
-            Coordinate prevCoord = new Coordinate() { X = 0, Y = 0 };
-            foreach (List<Coordinate> points in coordList)
+            PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
+            foreach (List<PointInt> points in coordList)
             {
                 if (points.Count == 0) throw new System.Exception(string.Format("unexpected point count encoding line geometry. Count is {0}", points.Count));
 
@@ -149,10 +149,10 @@ namespace EGIS.Mapbox.Vector.Tile
         }
 
 
-        private static void EncodePolygonGeometry(List<List<Coordinate>> coordList, List<System.UInt32> geometry)
+        private static void EncodePolygonGeometry(List<List<PointInt>> coordList, List<System.UInt32> geometry)
         {
-            Coordinate prevCoord = new Coordinate() { X = 0, Y = 0 };
-            foreach (List<Coordinate> points in coordList)
+            PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
+            foreach (List<PointInt> points in coordList)
             {
                 if (points.Count == 0) throw new System.Exception(string.Format("unexpected point count encoding polygon geometry. Count is {0}", points.Count));
 

@@ -135,7 +135,7 @@ namespace EGIS.Mapbox.Vector.Tile
         /// <summary>
         /// Get/Set the feature geometry
         /// </summary>
-		public List<List<Coordinate>> Geometry {get;set;}
+		public List<List<PointInt>> Geometry {get;set;}
 		
         /// <summary>
         /// Get/Set the feature attributes
