@@ -70,31 +70,5 @@ namespace ShpToMapboxVT
 
             return value;
         }
-
-        public List<TilesEntry> Query(string sqlString)
-        {
-            List<TilesEntry> result = new List<TilesEntry>();
-
-            SqliteCommand command = new SqliteCommand()
-            {
-                Connection = connection,
-            };
-            command.CommandText = sqlString;
-            SqliteDataReader dataReader = command.ExecuteReader();
-            while (dataReader.Read())
-            {
-                TilesEntry newEntry = new TilesEntry();
-                newEntry.ZoomLevel = (long)dataReader[ZoomLevelColumnName];
-                newEntry.TileColumn = (long)dataReader[TileColColumnName];
-                newEntry.TileRow = (long)dataReader[TileRowColumnName];
-                newEntry.TileId = (long)dataReader[TileIdColumnName];
-                newEntry.TileData = (byte[])dataReader[TileDataColumnName];
-
-                result.Add(newEntry);
-                Cursor++;
-            }
-
-            return result;
-        }
     }
 }

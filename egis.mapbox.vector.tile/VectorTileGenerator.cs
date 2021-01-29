@@ -60,32 +60,8 @@ namespace EGIS.Web.Controls
     ///}
     /// </code>                                                   
     /// </example>
-    public class VectorTileGenerator
+    public static class VectorTileGenerator
     {
-        /// <summary>
-        /// VectorTileGenerator constructor 
-        /// </summary>
-        public VectorTileGenerator()
-        {
-            TileSize = 512;
-            SimplificationFactor = 1;
-        }
-
-        /// <summary>
-        /// The size of the vector tiles
-        /// </summary>
-        public int TileSize
-        {
-            get;
-            set;
-        }
-
-        public int SimplificationFactor
-        {
-            get;
-            set;
-        }
-
         /// <summary>
         /// Generates a Vector Tile from ShapeFile layers
         /// </summary>
@@ -95,13 +71,13 @@ namespace EGIS.Web.Controls
         /// <param name="layers">List of ShapeFile layers</param>
         /// <param name="outputTileFeature">optional OutputTileFeatureDelegate which will be called with each record feature that will be added to the tile. This delegate is useful to exclude feaures at tile zoom levels</param>
         /// <returns></returns>
-        public virtual List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<ShapeFileFeatureSource> layers, IEnumerable<string> columnNames)
+        public static List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> layers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
         {
             List<VectorTileLayer> tileLayers = new List<VectorTileLayer>();
 
-            foreach (ShapeFileFeatureSource shapeFile in layers)
+            foreach (FeatureLayer featureLayer in layers)
             {
-                var layer = ProcessTile(shapeFile, tileX, tileY, zoomLevel, columnNames);
+                var layer = ProcessTile(featureLayer, tileX, tileY, zoomLevel, columnNames, simplificationFactor, tileSize);
                 if (layer.VectorTileFeatures != null && layer.VectorTileFeatures.Count > 0)
                 {
                     tileLayers.Add(layer);
@@ -117,24 +93,11 @@ namespace EGIS.Web.Controls
         [Flags]
         enum ClipState { None = 0, Start = 1, End = 2 };
 
-        public struct ClipBounds
-        {
-            public int XMin;
-            public int XMax;
-            public int YMin;
-            public int YMax;
-
-            public override string ToString()
-            {
-                return string.Format("ClipBounds XMin:{0}, XMax:{1}, YMin:{2}, YMax:{3}", XMin, XMax, YMin, YMax);
-            }
-        }
-
         #region private members
 
         private static Dictionary<string, RectangleShape> dictionaryCache = new Dictionary<string, RectangleShape>();
 
-        private VectorTileFeature GetVectorTileFeature(Feature feature, int tileX, int tileY, int zoom, int tileSize, ClipBounds clipBounds)
+        private static VectorTileFeature GetVectorTileFeature(Feature feature, int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor)
         {
             VectorTileFeature tileFeature = new VectorTileFeature()
             {
@@ -149,7 +112,7 @@ namespace EGIS.Web.Controls
                 case WellKnownType.Multiline:
                     tileFeature.GeometryType = Mapbox.Vector.Tile.Tile.GeomType.LineString;
                     MultilineShape multiLineShape = new MultilineShape(feature.GetWellKnownBinary());
-                    ProcessLineShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, multiLineShape);
+                    ProcessLineShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, multiLineShape,simplificationFactor);
                     break;
                 case WellKnownType.Polygon:
                 case WellKnownType.Multipolygon:
@@ -157,10 +120,10 @@ namespace EGIS.Web.Controls
                     MultipolygonShape multiPolygonShape = new MultipolygonShape(feature.GetWellKnownBinary());
                     foreach (PolygonShape polygonShape in multiPolygonShape.Polygons)
                     {
-                        ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, polygonShape.OuterRing);
+                        ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, polygonShape.OuterRing,simplificationFactor);
                         foreach (RingShape ringShape in polygonShape.InnerRings)
                         {
-                            ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, ringShape);
+                            ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, ringShape,simplificationFactor);
                         }
                     }
                     break;
@@ -205,14 +168,13 @@ namespace EGIS.Web.Controls
             return tileFeature;
         }
 
-        private VectorTileLayer ProcessTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames)
+        private static VectorTileLayer ProcessTile(FeatureLayer featureLayer, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, int simplificationFactor, int tileSize)
         {
-            int tileSize = TileSize;
             RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
             tileBounds.ScaleUp(5);
 
-            Collection<string> featureIds = shapeFile.GetFeatureIdsInsideBoundingBox(tileBounds);
-            ClipBounds clipBounds = new ClipBounds()
+            Collection<string> featureIds = featureLayer.FeatureSource.GetFeatureIdsInsideBoundingBox(tileBounds);
+            RectangleInt clipBounds = new RectangleInt()
             {
                 XMin = -20,
                 YMin = -20,
@@ -223,14 +185,14 @@ namespace EGIS.Web.Controls
             VectorTileLayer tileLayer = new VectorTileLayer();
             tileLayer.Extent = (uint)tileSize;
             tileLayer.Version = 2;
-            tileLayer.Name = Path.GetFileNameWithoutExtension(shapeFile.ShapePathFilename);
+            tileLayer.Name = featureLayer.Name;
 
             foreach (string featureId in featureIds)
             {
                 //get the point data
-                Feature feature = shapeFile.GetFeatureById(featureId, columnNames);
+                Feature feature = featureLayer.FeatureSource.GetFeatureById(featureId, columnNames);
 
-                VectorTileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds);
+                VectorTileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds, simplificationFactor);
 
                 if (tileFeature.Geometry.Count > 0)
                 {
@@ -240,7 +202,7 @@ namespace EGIS.Web.Controls
             return tileLayer;
         }
 
-        private void ProcessLineShape(int tileX, int tileY, int zoom, int tileSize, ClipBounds clipBounds, VectorTileFeature tileFeature, MultilineShape multiLineShape)
+        private static void ProcessLineShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, VectorTileFeature tileFeature, MultilineShape multiLineShape, int simplificationFactor)
         {
             foreach (LineShape line in multiLineShape.Lines)
             {
@@ -250,7 +212,7 @@ namespace EGIS.Web.Controls
                     pixelPoints[n] = WorldPointToTilePoint(line.Vertices[n].X, line.Vertices[n].Y, zoom, tileX, tileY, tileSize);
                 }
 
-                PointInt[] simplifiedPixelPoints = SimplifyPointData(pixelPoints, SimplificationFactor);
+                PointInt[] simplifiedPixelPoints = SimplifyPointData(pixelPoints, simplificationFactor);
 
                 //output count may be zero for short records at low zoom levels as 
                 //the pixel coordinates wil be a single point after simplification
@@ -258,7 +220,7 @@ namespace EGIS.Web.Controls
                 {
                     List<int> clippedPoints = new List<int>();
                     List<int> parts = new List<int>();
-                    PolyLineClip(simplifiedPixelPoints, clipBounds, clippedPoints, parts);
+                    ClipPolyline(simplifiedPixelPoints, clipBounds, clippedPoints, parts);
                     if (parts.Count > 0)
                     {
                         //output the clipped polyline
@@ -280,14 +242,14 @@ namespace EGIS.Web.Controls
             }
         }
 
-        private void ProcessRingShape(int tileX, int tileY, int zoom, int tileSize, ClipBounds clipBounds, VectorTileFeature tileFeature, RingShape ringShape)
+        private static void ProcessRingShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, VectorTileFeature tileFeature, RingShape ringShape, int simplificationFactor)
         {
             PointInt[] tilePoints = new PointInt[ringShape.Vertices.Count];
             for (int n = 0; n < ringShape.Vertices.Count; ++n)
             {
                 tilePoints[n] = WorldPointToTilePoint(ringShape.Vertices[n].X, ringShape.Vertices[n].Y, zoom, tileX, tileY, tileSize);
             }
-            PointInt[] simplifiedTilePoints = SimplifyPointData(tilePoints, SimplificationFactor);
+            PointInt[] simplifiedTilePoints = SimplifyPointData(tilePoints, simplificationFactor);
 
             //output count may be zero for short records at low zoom levels as 
             //the pixel coordinates wil be a single point after simplification
@@ -305,7 +267,7 @@ namespace EGIS.Web.Controls
             }
         }
 
-        private PointInt[] SimplifyPointData(PointInt[] points, int simplificationFactor)
+        private static PointInt[] SimplifyPointData(PointInt[] points, int simplificationFactor)
         {
             //check for duplicates points at end after they have been converted to pixel coordinates
             //polygons need at least 3 points so don't reduce less than this
@@ -369,8 +331,29 @@ namespace EGIS.Web.Controls
             return new RectangleShape(bbox.UpperLeftPoint.X, bbox.UpperLeftPoint.Y, bbox.LowerRightPoint.X, bbox.LowerRightPoint.Y);
         }
 
-        private static void DouglasPeuckerReduction(PointInt[] points, Int32 firstPoint, Int32 lastPoint, Double tolerance,
-            List<Int32> pointIndexsToKeep)
+        private static PointInt WorldPointToTilePoint(double pointX, double pointY, int zoomLevel, int tileX, int tileY, int tileSize)
+        {
+            string key = $"{zoomLevel}-{tileX}-{tileY}";
+            if (!dictionaryCache.ContainsKey(key))
+            {
+                SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
+                double currentScale = GetZoomLevelSetScale(zoomLevelSet, zoomLevel);
+                var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, 512, 512, GeographyUnit.Meter);
+                dictionaryCache.Add(key, tileMatrix.GetCell(tileX, tileY).BoundingBox);
+            }
+
+            RectangleShape bbox = dictionaryCache[key];
+            double scale = ((double)tileSize / 40075016.4629396) * (1 << zoomLevel);
+            PointInt result = new PointInt()
+            {
+                X = (int)Math.Round((pointX - bbox.LowerLeftPoint.X) * scale),
+                Y = (int)Math.Round((bbox.UpperLeftPoint.Y - pointY) * scale)
+            };
+
+            return result;
+        }
+
+        private static void DouglasPeuckerReduction(PointInt[] points, int firstPoint, int lastPoint, Double tolerance, List<int> pointIndexsToKeep)
         {
             double maxDistance = 0;
             int indexMax = 0;
@@ -402,13 +385,6 @@ namespace EGIS.Web.Controls
             return (ab.X * bc.X) + (ab.Y * bc.Y);
         }
 
-        /// <summary>
-        /// Computes the cross product AB x AC 
-        /// </summary>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        /// <param name="c"></param>
-        /// <returns></returns>
         private static double Cross(ref PointInt a, ref PointInt b, ref PointInt c)
         {
             PointShape ab = new PointShape(b.X - a.X, b.Y - a.Y);
@@ -416,12 +392,6 @@ namespace EGIS.Web.Controls
             return (ab.X * ac.Y) - (ab.Y * ac.X);
         }
 
-        /// <summary>
-        /// returns the Euclidean distance between two points
-        /// </summary>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        /// <returns></returns>
         private static double Distance(ref PointInt a, ref PointInt b)
         {
             double d1 = a.X - b.X;
@@ -504,12 +474,16 @@ namespace EGIS.Web.Controls
             return resultPoints;
         }
 
-        private static void PolyLineClip(PointInt[] input, ClipBounds clipBounds, List<int> clippedPoints, List<int> parts)
+        private static void ClipPolyline(PointInt[] input, RectangleInt clipBounds, List<int> clippedPoints, List<int> parts)
         {
             bool inside = false;
             for (int n = 0; n < input.Length - 1; ++n)
             {
-                double x0 = input[n].X, y0 = input[n].Y, x1 = input[n + 1].X, y1 = input[n + 1].Y;
+                double x0 = input[n].X;
+                double y0 = input[n].Y;
+                double x1 = input[n + 1].X;
+                double y1 = input[n + 1].Y;
+
                 ClipState clipState;
                 bool insideBounds = CohenSutherlandLineClip(ref x0, ref y0, ref x1, ref y1, ref clipBounds, out clipState);
                 if (insideBounds)
@@ -528,7 +502,7 @@ namespace EGIS.Web.Controls
             }
         }
 
-        static List<PointInt> ClipRingShape(PointInt[] inputPoints, ClipBounds clipBounds)
+        private static List<PointInt> ClipRingShape(PointInt[] inputPoints, RectangleInt clipBounds)
         {
             List<PointInt> outputList = new List<PointInt>();
             List<PointInt> inputList = new List<PointInt>(inputPoints.Length);
@@ -643,18 +617,7 @@ namespace EGIS.Web.Controls
             return outputList;
         }
 
-        /// <summary>
-        /// determines if a polygon is a "hole"
-        /// </summary>
-        /// <param name="points"></param>
-        /// <param name="numPoints"></param>
-        /// <returns></returns>
-        /// <remarks>
-        /// <para>
-        /// Vertices of a rings defining holes in polygons are in a counterclockwise direction. 
-        /// </para>
-        /// </remarks>
-        public static bool IsPolygonHole(IList<PointInt> points, int numPoints)
+        private static bool IsPolygonHole(IList<PointInt> points, int numPoints)
         {
             //if we are detecting holes then we need to calculate the area
             double area = 0;
@@ -668,36 +631,13 @@ namespace EGIS.Web.Controls
             return area > 0;
         }
 
-        private static PointInt WorldPointToTilePoint(double pointX, double pointY, int zoomLevel, int tileX, int tileY, int tileSize)
-        {
-            string key = $"{zoomLevel}-{tileX}-{tileY}";
-            if (!dictionaryCache.ContainsKey(key))
-            {
-                SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
-                double currentScale = GetZoomLevelSetScale(zoomLevelSet, zoomLevel);
-                var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, 512, 512, GeographyUnit.Meter);
-                dictionaryCache.Add(key, tileMatrix.GetCell(tileX, tileY).BoundingBox);
-            }
-
-            RectangleShape bbox = dictionaryCache[key];
-            double scale = ((double)tileSize / 40075016.4629396) * (1 << zoomLevel);
-            PointInt result = new PointInt()
-            {
-                X = (int)Math.Round((pointX - bbox.LowerLeftPoint.X) * scale),
-                Y = (int)Math.Round((bbox.UpperLeftPoint.Y - pointY) * scale)
-            };
-
-            return result;
-        }
-
         // Compute the bit code for a point (x, y) using the clip rectangle
         // bounded diagonally by (xmin, ymin), and (xmax, ymax)
 
         // ASSUME THAT xmax, xmin, ymax and ymin are global constants.
-        private static OutCode ComputeOutCode(double x, double y, ref ClipBounds clipBounds)
+        private static OutCode ComputeOutCode(double x, double y, ref RectangleInt clipBounds)
         {
             OutCode code = OutCode.Inside;
-
 
             if (x < clipBounds.XMin)           // to the left of clip window
                 code |= OutCode.Left;
@@ -722,7 +662,7 @@ namespace EGIS.Web.Controls
         /// <param name="clipState"> state of clipped line. ClipState.None if line is not clipped. If either end of the line 
         /// is clipped then the clipState flag are set (ClipState.Start or ClipState.End) </param>
         /// <returns>true if clipped line is inside given clip bounds</returns>
-        private static bool CohenSutherlandLineClip(ref double x0, ref double y0, ref double x1, ref double y1, ref ClipBounds clipBounds, out ClipState clipState)
+        private static bool CohenSutherlandLineClip(ref double x0, ref double y0, ref double x1, ref double y1, ref RectangleInt clipBounds, out ClipState clipState)
         {
             // compute outcodes for P0, P1, and whatever point lies outside the clip rectangle
             OutCode outcode0 = ComputeOutCode(x0, y0, ref clipBounds);

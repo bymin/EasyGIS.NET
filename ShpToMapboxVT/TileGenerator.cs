@@ -40,7 +40,6 @@ namespace ShpToMapboxVT
         private DateTime tileSpeedStartTime = DateTime.Now;
         private DateTime processingStartTime = DateTime.Now;
 
-
         public TileGenerator()
         {
             StartZoomLevel = 0;
@@ -109,23 +108,16 @@ namespace ShpToMapboxVT
         /// <param name="includedAttributes">List of attributes to export. If null all attributes will be output</param>
         public void Process(string shapeFileName, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
-            ShapeFileFeatureSource shapeFile = new ShapeFileFeatureSource(shapeFileName);
+            ShapeFileFeatureLayer shapeFile = new ShapeFileFeatureLayer(shapeFileName);
             shapeFile.Open();
-
 
             if (shapeFile.Projection != null)
             {
-                shapeFile.ProjectionConverter = new ProjectionConverter(shapeFile.Projection.ProjString, 3857);
-                shapeFile.ProjectionConverter.Open();
+                shapeFile.FeatureSource.ProjectionConverter = new ProjectionConverter(shapeFile.Projection.ProjString, 3857);
+                shapeFile.FeatureSource.ProjectionConverter.Open();
             }
 
-            VectorTileGenerator generator = new VectorTileGenerator()
-            {
-                TileSize = TileSize,
-                SimplificationFactor = 1
-            };
-
-            Process(shapeFile, generator, cancellationToken, includedAttributes);
+            Process(shapeFile, cancellationToken, includedAttributes);
         }
 
         public static double GetZoomLevelIndex(ZoomLevelSet zoomLevelSet, int zoomLevel)
@@ -157,7 +149,7 @@ namespace ShpToMapboxVT
             }
         }
 
-        private void Process(ShapeFileFeatureSource shapeFile, EGIS.Web.Controls.VectorTileGenerator generator, CancellationToken cancellationToken, List<string> includedAttributes = null)
+        private void Process(ShapeFileFeatureLayer shapeFile, CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             int zoom = Math.Max(StartZoomLevel, 0);
             int endZoomLevel = Math.Min(Math.Max(zoom, EndZoomLevel), 49);
@@ -188,7 +180,7 @@ namespace ShpToMapboxVT
             {
                 for (long tileX = tileRange.MinColumnIndex; tileX <= tileRange.MaxColumnIndex && !cancellationToken.IsCancellationRequested; ++tileX)
                 {
-                    ProcessTileRecursive(shapeFile, (int)tileY, (int)tileX, zoom, endZoomLevel, generator, cancellationToken, includedAttributes);
+                    ProcessTileRecursive(shapeFile, (int)tileY, (int)tileX, zoom, endZoomLevel, cancellationToken, includedAttributes);
                 }
             }
 
@@ -200,12 +192,11 @@ namespace ShpToMapboxVT
             }
         }
 
-
-        private void ProcessTileRecursive(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, EGIS.Web.Controls.VectorTileGenerator generator, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
+        private void ProcessTileRecursive(FeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             Console.WriteLine($"Tile: {zoom}-{tileX}-{tileY}");
             if (cancellationToken.IsCancellationRequested) return;
-            bool result = ProcessTile(shapeFile, tileX, tileY, zoom, generator, includedAttributes);
+            bool result = ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes);
 
             ++tileSpeedCount;
             if (tileSpeedCount >= 1000)
@@ -220,19 +211,19 @@ namespace ShpToMapboxVT
 
             if (result && zoom < maxZoomLevel)
             {
-                ProcessTileRecursive(shapeFile, tileX << 1, tileY << 1, zoom + 1, maxZoomLevel, generator, cancellationToken, includedAttributes);
-                ProcessTileRecursive(shapeFile, (tileX << 1) + 1, tileY << 1, zoom + 1, maxZoomLevel, generator, cancellationToken, includedAttributes);
-                ProcessTileRecursive(shapeFile, tileX << 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, generator, cancellationToken, includedAttributes);
-                ProcessTileRecursive(shapeFile, (tileX << 1) + 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, generator, cancellationToken, includedAttributes);
+                ProcessTileRecursive(shapeFile, tileX << 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
+                ProcessTileRecursive(shapeFile, (tileX << 1) + 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
+                ProcessTileRecursive(shapeFile, tileX << 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
+                ProcessTileRecursive(shapeFile, (tileX << 1) + 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
             }
         }
 
-        private bool ProcessTile(ShapeFileFeatureSource shapeFile, int tileX, int tileY, int zoom, VectorTileGenerator generator, IEnumerable<string> columnNames)
+        private bool ProcessTile(FeatureLayer shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames)
         {
             ++processTileCount;
-            List<ShapeFileFeatureSource> layers = new List<ShapeFileFeatureSource>();
+            List<FeatureLayer> layers = new List<FeatureLayer>();
             layers.Add(shapeFile);
-            var vectorTile = generator.Generate(tileX, tileY, zoom, layers, columnNames);
+            var vectorTile = VectorTileGenerator.Generate(tileX, tileY, zoom, layers, columnNames, 512, 1);
             if (vectorTile != null && vectorTile.Count > 0)
             {
                 using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
@@ -249,32 +240,6 @@ namespace ShpToMapboxVT
         protected string GetTileName(int tileX, int tileY, int zoom)
         {
             return Path.Combine(this.BaseOutputDirectory, string.Format("{0}_{1}_{2}.mvt", zoom, tileX, tileY));
-        }
-
-
-        /// <summary>
-        /// Returns zero-based index of a given field name in an array of field names
-        /// </summary>
-        /// <param name="fields"></param>
-        /// <param name="fieldName"></param>
-        /// <param name="ignoreCase"></param>
-        /// <returns></returns>
-        public static int IndexOfField(string[] fields, string fieldName, bool ignoreCase)
-        {
-            if (fields == null || string.IsNullOrEmpty(fieldName)) return -1;
-            int index;
-            for (index = fields.Length - 1; index >= 0; --index)
-            {
-                if (ignoreCase)
-                {
-                    if (string.Compare(fields[index], fieldName, StringComparison.OrdinalIgnoreCase) == 0) return index;
-                }
-                else
-                {
-                    if (string.Compare(fields[index], fieldName, StringComparison.Ordinal) == 0) return index;
-                }
-            }
-            return index;
         }
     }
 

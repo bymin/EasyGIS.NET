@@ -49,25 +49,5 @@ namespace ShpToMapboxVT
 
             return result;
         }
-
-        public void ReadAllEntries()
-        {
-            SqliteDataReader dataReader = null;
-            Entries.Clear();
-
-            SqliteCommand command = new SqliteCommand()
-            {
-                Connection = connection,
-            };
-            command.CommandText = $"SELECT * FROM {TableName}";
-            dataReader = command.ExecuteReader();
-
-            while (dataReader.Read())
-            {
-                string name = (string)dataReader["name"];
-                string value = (string)dataReader["value"];
-                Entries.Add(new MetadataEntry() { Name = name, Value = value });
-            }
-        }
     }
 }
