@@ -229,7 +229,7 @@ namespace ShpToMapboxVT
             {
                 using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
                 {
-                    VectorTileParser.Encode(vectorTile, fs);
+                    VectorTileFeature.Encode(vectorTile, fs);
                 }
                 ++totalDataTileCount;
                 return true;

@@ -12,11 +12,8 @@ namespace EGIS.Mapbox.Vector.Tile
 
     internal static class GeometryParser
     {
-
-
         public static List<List<PointInt>> ParseGeometry(List<uint> geom, Tile.GeomType geomType)
         {
-            
             int x = 0;
             int y = 0;
             var coordsList = new List<List<PointInt>>();
@@ -70,7 +67,6 @@ namespace EGIS.Mapbox.Vector.Tile
             return coordsList;
         }
 
-
         public static void EncodeGeometry( List<List<PointInt>> coordList, Tile.GeomType geomType, List<System.UInt32> geometry)
         {
             switch (geomType)
@@ -88,7 +84,6 @@ namespace EGIS.Mapbox.Vector.Tile
                     throw new System.Exception(string.Format("Unknown geometry type:{0}", geomType));
             }
         }
-
 
         private static void EncodePointGeometry(List<List<PointInt>> coordList, List<System.UInt32> geometry)
         {
@@ -193,7 +188,5 @@ namespace EGIS.Mapbox.Vector.Tile
             }
 
         }
-
-
     }
 }

@@ -6,7 +6,7 @@ namespace EGIS.Mapbox.Vector.Tile
     /// Class representing a Mapbox Vector Tile Layer. A Vector tile should contain at least one VectorTileLayer
     /// </summary>
 	public class VectorTileLayer
-	{
+    {
         public VectorTileLayer()
         {
             VectorTileFeatures = new List<VectorTileFeature>();
@@ -16,7 +16,7 @@ namespace EGIS.Mapbox.Vector.Tile
         /// <summary>
         /// List of VectorTileFeature. A VectorTileLayer should contain at least one feature
         /// </summary>
-		public List<VectorTileFeature> VectorTileFeatures { get;set; }
+		public List<VectorTileFeature> VectorTileFeatures { get; set; }
 
         /// <summary>
         /// get/set the name of the Layer. A Layer MUST contain a name.
@@ -35,6 +35,6 @@ namespace EGIS.Mapbox.Vector.Tile
         /// get/set the size of the Layer. Typical values are 512 or 1024
         /// </summary>
 		public uint Extent { get; set; }
-	}
+    }
 }
 

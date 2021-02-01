@@ -1,132 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using ProtoBuf;
 
 namespace EGIS.Mapbox.Vector.Tile
 {
-
-    public enum AttributeType
-    {
-        Unknown,
-        StringValue,
-        FloatValue,
-        DoubleValue,
-        IntValue,
-        UIntValue,
-        SIntValue,
-        BoolValue
-    }
-
-    
-    public class AttributeKeyValue
-    {
-        public AttributeKeyValue(string key, double val)
-        {
-            Key = key;
-            Value = val;
-            AttributeType = AttributeType.DoubleValue;
-        }
-
-        public AttributeKeyValue(string key, float val)
-        {
-            Key = key;
-            Value = val;
-            AttributeType = AttributeType.FloatValue;
-        }
-
-        public AttributeKeyValue(string key, string val)
-        {
-            Key = key;
-            Value = val;
-            AttributeType = AttributeType.StringValue;
-        }
-
-        public AttributeKeyValue(string key, bool val)
-        {
-            Key = key;
-            Value = val;
-            AttributeType = AttributeType.BoolValue;
-        }
-
-       
-        public AttributeKeyValue(string key, System.Int64 val)
-        {
-            Key = key;
-            Value = val;
-            AttributeType = AttributeType.IntValue;
-        }
-
-        public AttributeKeyValue(string key, System.UInt64 val)
-        {
-            Key = key;
-            Value = val;
-            AttributeType = AttributeType.UIntValue;
-        }
-
-        public AttributeKeyValue(string key, dynamic val, AttributeType attributeType)
-        {
-            Key = key;
-            Value = val;
-            AttributeType = attributeType;
-        }
-
-        public string Key;
-
-        public dynamic Value;
-        //public object Value;
-
-        public AttributeType AttributeType;
-
-
-        public static Tile.Value ToTileValue(AttributeKeyValue value)
-        {
-            Tile.Value tileValue = new Tile.Value();
-            if (value.AttributeType == AttributeType.StringValue)
-            {
-                tileValue.StringValue = value.Value;
-            }
-            else if (value.AttributeType == AttributeType.BoolValue)
-            {
-                tileValue.BoolValue = value.Value;
-            }
-            else if (value.AttributeType == AttributeType.DoubleValue)
-            {
-                tileValue.DoubleValue = value.Value;
-            }
-            else if (value.AttributeType == AttributeType.FloatValue)
-            {
-                tileValue.FloatValue = value.Value;
-            }
-            else if (value.AttributeType == AttributeType.IntValue)
-            {
-                tileValue.IntValue = value.Value;
-            }
-            else if (value.AttributeType == AttributeType.UIntValue)
-            {
-                tileValue.UintValue = value.Value;
-            }
-            else if (value.AttributeType == AttributeType.SIntValue)
-            {
-                tileValue.SintValue = value.Value;
-            }
-            else
-            {
-                throw new System.Exception(string.Format("Could not determine tileValue. valye type is {0}", value.GetType()));
-            }
-            return tileValue;
-        }
-
-
-        public override string ToString()
-        {
-            return Value.ToString();
-        }
-
-    }
-
     /// <summary>
     /// Class representing a Vector Tile Feature
     /// </summary>
     public class VectorTileFeature
-	{
+    {
         /// <summary>
         /// Get set the feature Id. features in a tile layer should be unique
         /// </summary>
@@ -135,15 +17,118 @@ namespace EGIS.Mapbox.Vector.Tile
         /// <summary>
         /// Get/Set the feature geometry
         /// </summary>
-		public List<List<PointInt>> Geometry {get;set;}
-		
+		public List<List<PointInt>> Geometry { get; set; }
+
         /// <summary>
         /// Get/Set the feature attributes
         /// </summary>
         public List<AttributeKeyValue> Attributes { get; set; }
 
-		public Tile.GeomType GeometryType { get; set; }
-        public uint Extent { get; set; }
-    }
-}
+        public Tile.GeomType GeometryType { get; set; }
 
+        public uint Extent { get; set; }
+
+
+        /// <summary>
+        /// Parses a Mapbox .mvt binary stream and returns a List of VectorTileLayer objects
+        /// </summary>
+        /// <param name="stream">stream opened from a .mvt Mapbox tile</param>
+        /// <returns></returns>
+        public static List<VectorTileLayer> Parse(Stream stream)
+        {
+            var tile = Serializer.Deserialize<Tile>(stream);
+            var list = new List<VectorTileLayer>();
+            foreach (var layer in tile.Layers)
+            {
+                var extent = layer.Extent;
+                var vectorTileLayer = new VectorTileLayer();
+                vectorTileLayer.Name = layer.Name;
+                vectorTileLayer.Version = layer.Version;
+                vectorTileLayer.Extent = layer.Extent;
+
+                foreach (var feature in layer.Features)
+                {
+                    var vectorTileFeature = FeatureParser.Parse(feature, layer.Keys, layer.Values, extent);
+                    vectorTileLayer.VectorTileFeatures.Add(vectorTileFeature);
+                }
+                list.Add(vectorTileLayer);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Encodes a Mapbox .mvt tile
+        /// </summary>
+        /// <param name="layers">List of VectorTileLayers to encode. A Tile should contain at least one layer</param>
+        /// <param name="stream">output .mvt tile stream</param>
+        public static void Encode(List<VectorTileLayer> layers, Stream stream)
+        {
+            Tile tile = new Tile();
+
+            foreach (var vectorTileLayer in layers)
+            {
+                Tile.Layer tileLayer = new Tile.Layer();
+                tile.Layers.Add(tileLayer);
+
+                tileLayer.Name = vectorTileLayer.Name;
+                tileLayer.Version = vectorTileLayer.Version;
+                tileLayer.Extent = vectorTileLayer.Extent;
+
+                //index the key value attributes
+                List<string> keys = new List<string>();
+                List<AttributeKeyValue> values = new List<AttributeKeyValue>();
+
+                Dictionary<string, int> keysIndex = new Dictionary<string, int>();
+                Dictionary<dynamic, int> valuesIndex = new Dictionary<dynamic, int>();
+
+                foreach (var feature in vectorTileLayer.VectorTileFeatures)
+                {
+                    foreach (var keyValue in feature.Attributes)
+                    {
+                        if (!keysIndex.ContainsKey(keyValue.Key))
+                        {
+                            keysIndex.Add(keyValue.Key, keys.Count);
+                            keys.Add(keyValue.Key);
+                        }
+                        if (!valuesIndex.ContainsKey(keyValue.Value))
+                        {
+                            valuesIndex.Add(keyValue.Value, values.Count);
+                            values.Add(keyValue);
+                        }
+                    }
+                }
+
+                for (int n = 0; n < vectorTileLayer.VectorTileFeatures.Count; ++n)
+                {
+                    var feature = vectorTileLayer.VectorTileFeatures[n];
+
+                    Tile.Feature tileFeature = new Tile.Feature();
+                    tileLayer.Features.Add(tileFeature);
+
+                    ulong id;
+                    if (!ulong.TryParse(feature.Id, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out id))
+                    {
+                        id = (ulong)(n + 1);
+                    }
+                    tileFeature.Id = id;
+                    tileFeature.Type = feature.GeometryType;
+                    GeometryParser.EncodeGeometry(feature.Geometry, feature.GeometryType, tileFeature.Geometry);
+                    foreach (var keyValue in feature.Attributes)
+                    {
+                        tileFeature.Tags.Add((uint)keysIndex[keyValue.Key]);
+                        tileFeature.Tags.Add((uint)valuesIndex[keyValue.Value]);
+                    }
+                }
+
+                tileLayer.Keys.AddRange(keys);
+                foreach (var value in values)
+                {
+                    tileLayer.Values.Add(AttributeKeyValue.ToTileValue(value));
+                }
+            }
+
+            Serializer.Serialize<Tile>(stream, tile);
+        }
+    }
+
+}
