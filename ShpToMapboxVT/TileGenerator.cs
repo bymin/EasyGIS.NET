@@ -110,6 +110,7 @@ namespace ShpToMapboxVT
         {
             ShapeFileFeatureLayer shapeFile = new ShapeFileFeatureLayer(shapeFileName);
             shapeFile.Open();
+            shapeFile.Name = Path.GetFileNameWithoutExtension(shapeFile.ShapePathFilename);
 
             if (shapeFile.Projection != null)
             {
