@@ -278,6 +278,8 @@ namespace ShpToMapboxVT
                 }
                 targetMap.Insert(entries);
             });
+
+            targetDBConnection.Close();
         }
 
         private void btnDisplay_Click(object sender, EventArgs e)

@@ -112,7 +112,7 @@ namespace EGIS.Web.Controls
                 case WellKnownType.Multiline:
                     tileFeature.GeometryType = Mapbox.Vector.Tile.Tile.GeomType.LineString;
                     MultilineShape multiLineShape = new MultilineShape(feature.GetWellKnownBinary());
-                    ProcessLineShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, multiLineShape,simplificationFactor);
+                    ProcessLineShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, multiLineShape, simplificationFactor);
                     break;
                 case WellKnownType.Polygon:
                 case WellKnownType.Multipolygon:
@@ -120,10 +120,10 @@ namespace EGIS.Web.Controls
                     MultipolygonShape multiPolygonShape = new MultipolygonShape(feature.GetWellKnownBinary());
                     foreach (PolygonShape polygonShape in multiPolygonShape.Polygons)
                     {
-                        ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, polygonShape.OuterRing,simplificationFactor);
+                        ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, polygonShape.OuterRing, simplificationFactor);
                         foreach (RingShape ringShape in polygonShape.InnerRings)
                         {
-                            ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, ringShape,simplificationFactor);
+                            ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, ringShape, simplificationFactor);
                         }
                     }
                     break;
@@ -172,8 +172,9 @@ namespace EGIS.Web.Controls
         {
             RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
             tileBounds.ScaleUp(5);
+            featureLayer.Open();
 
-            Collection<string> featureIds = featureLayer.FeatureSource.GetFeatureIdsInsideBoundingBox(tileBounds);
+            Collection<string> allFeatureIds = featureLayer.FeatureSource.GetFeatureIdsInsideBoundingBox(tileBounds);
             RectangleInt clipBounds = new RectangleInt()
             {
                 XMin = -20,
@@ -182,25 +183,43 @@ namespace EGIS.Web.Controls
                 YMax = tileSize + 20
             };
 
+
             VectorTileLayer tileLayer = new VectorTileLayer();
             tileLayer.Extent = (uint)tileSize;
             tileLayer.Version = 2;
             tileLayer.Name = featureLayer.Name;
 
-            foreach (string featureId in featureIds)
+            int IdsCountToExecute = allFeatureIds.Count;
+            int startIndex = 0;
+
+            while (IdsCountToExecute > 0)
             {
-                //get the point data
-                Feature feature = featureLayer.FeatureSource.GetFeatureById(featureId, columnNames);
-
-                VectorTileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds, simplificationFactor);
-
-                if (tileFeature.Geometry.Count > 0)
+                string[] featureIds = GetSubString(allFeatureIds, startIndex, Math.Min(1000, IdsCountToExecute));
+                Collection<Feature> features = featureLayer.FeatureSource.GetFeaturesByIds(featureIds, columnNames);
+                foreach (Feature feature in features)
                 {
-                    tileLayer.VectorTileFeatures.Add(tileFeature);
+                    VectorTileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds, simplificationFactor);
+                    if (tileFeature.Geometry.Count > 0)
+                    {
+                        tileLayer.VectorTileFeatures.Add(tileFeature);
+                    }
                 }
+                IdsCountToExecute = IdsCountToExecute - featureIds.Length;
+                startIndex = startIndex + featureIds.Length;
             }
+
             return tileLayer;
         }
+        private static string[] GetSubString(Collection<string> sourceString, int startIndex, int endIndex)
+        {
+            string[] result = new string[endIndex];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = sourceString[startIndex + i];
+            }
+            return result;
+        }
+
 
         private static void ProcessLineShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, VectorTileFeature tileFeature, MultilineShape multiLineShape, int simplificationFactor)
         {
