@@ -97,12 +97,12 @@ namespace EGIS.Web.Controls
 
         private static Dictionary<string, RectangleShape> dictionaryCache = new Dictionary<string, RectangleShape>();
 
-        private static VectorTileFeature GetVectorTileFeature(Feature feature, int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor)
+        private static EGIS.Mapbox.Vector.Tile.Tile.Feature GetVectorTileFeature(Feature feature, int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor)
         {
-            VectorTileFeature tileFeature = new VectorTileFeature()
+            EGIS.Mapbox.Vector.Tile.Tile.Feature tileFeature = new EGIS.Mapbox.Vector.Tile.Tile.Feature()
             {
-                Id = feature.Id,
-                Geometry = new List<List<PointInt>>(),
+                Id1 = feature.Id,
+                Geometry1 = new List<List<PointInt>>(),
                 Attributes = new List<AttributeKeyValue>()
             };
 
@@ -110,13 +110,13 @@ namespace EGIS.Web.Controls
             {
                 case WellKnownType.Line:
                 case WellKnownType.Multiline:
-                    tileFeature.GeometryType = Mapbox.Vector.Tile.Tile.GeomType.LineString;
+                    tileFeature.Type = Mapbox.Vector.Tile.Tile.GeomType.LineString;
                     MultilineShape multiLineShape = new MultilineShape(feature.GetWellKnownBinary());
                     ProcessLineShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, multiLineShape, simplificationFactor);
                     break;
                 case WellKnownType.Polygon:
                 case WellKnownType.Multipolygon:
-                    tileFeature.GeometryType = Mapbox.Vector.Tile.Tile.GeomType.Polygon;
+                    tileFeature.Type = Mapbox.Vector.Tile.Tile.GeomType.Polygon;
                     MultipolygonShape multiPolygonShape = new MultipolygonShape(feature.GetWellKnownBinary());
                     foreach (PolygonShape polygonShape in multiPolygonShape.Polygons)
                     {
@@ -129,7 +129,7 @@ namespace EGIS.Web.Controls
                     break;
                 case WellKnownType.Point:
                 case WellKnownType.Multipoint:
-                    tileFeature.GeometryType = Mapbox.Vector.Tile.Tile.GeomType.Point;
+                    tileFeature.Type = Mapbox.Vector.Tile.Tile.GeomType.Point;
                     List<PointInt> coordinates = new List<PointInt>();
 
                     MultipointShape multiPointShape = new MultipointShape();
@@ -151,11 +151,11 @@ namespace EGIS.Web.Controls
                     }
                     if (coordinates.Count > 0)
                     {
-                        tileFeature.Geometry.Add(coordinates);
+                        tileFeature.Geometry1.Add(coordinates);
                     }
                     break;
                 default:
-                    tileFeature.GeometryType = Mapbox.Vector.Tile.Tile.GeomType.Unknown;
+                    tileFeature.Type = Mapbox.Vector.Tile.Tile.GeomType.Unknown;
                     break;
             }
 
@@ -198,8 +198,8 @@ namespace EGIS.Web.Controls
                 Collection<Feature> features = featureLayer.FeatureSource.GetFeaturesByIds(featureIds, columnNames);
                 foreach (Feature feature in features)
                 {
-                    VectorTileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds, simplificationFactor);
-                    if (tileFeature.Geometry.Count > 0)
+                    EGIS.Mapbox.Vector.Tile.Tile.Feature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds, simplificationFactor);
+                    if (tileFeature.Geometry1.Count > 0)
                     {
                         tileLayer.VectorTileFeatures.Add(tileFeature);
                     }
@@ -221,7 +221,7 @@ namespace EGIS.Web.Controls
         }
 
 
-        private static void ProcessLineShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, VectorTileFeature tileFeature, MultilineShape multiLineShape, int simplificationFactor)
+        private static void ProcessLineShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, EGIS.Mapbox.Vector.Tile.Tile.Feature tileFeature, MultilineShape multiLineShape, int simplificationFactor)
         {
             foreach (LineShape line in multiLineShape.Lines)
             {
@@ -249,7 +249,7 @@ namespace EGIS.Web.Controls
                             int index2 = n < parts.Count - 1 ? parts[n + 1] : clippedPoints.Count;
 
                             List<PointInt> lineString = new List<PointInt>();
-                            tileFeature.Geometry.Add(lineString);
+                            tileFeature.Geometry1.Add(lineString);
                             //clipped points store separate x/y pairs so there will be two values per measure
                             for (int i = index1; i < index2; i += 2)
                             {
@@ -261,7 +261,7 @@ namespace EGIS.Web.Controls
             }
         }
 
-        private static void ProcessRingShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, VectorTileFeature tileFeature, RingShape ringShape, int simplificationFactor)
+        private static void ProcessRingShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, EGIS.Mapbox.Vector.Tile.Tile.Feature tileFeature, RingShape ringShape, int simplificationFactor)
         {
             PointInt[] tilePoints = new PointInt[ringShape.Vertices.Count];
             for (int n = 0; n < ringShape.Vertices.Count; ++n)
@@ -281,7 +281,7 @@ namespace EGIS.Web.Controls
                 List<PointInt> clippedRing = ClipRingShape(simplifiedTilePoints, clipBounds);
                 if (clippedRing.Count > 3)
                 {
-                    tileFeature.Geometry.Add(clippedRing);
+                    tileFeature.Geometry1.Add(clippedRing);
                 }
             }
         }
