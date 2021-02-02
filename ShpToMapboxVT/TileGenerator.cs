@@ -229,7 +229,7 @@ namespace ShpToMapboxVT
             {
                 using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
                 {
-                    TileFeature.Encode(vectorTile, fs);
+                    EGIS.Mapbox.Vector.Tile.Tile.Serialize(vectorTile, fs);
                 }
                 ++totalDataTileCount;
                 return true;

@@ -13,58 +13,46 @@ namespace EGIS.Mapbox.Vector.Tile
             LineTo = 2,
             ClosePath = 7
         }
+      
+        ProtoBuf.IExtension _extensionObject;
 
-        ulong _id;
+
+        public TileFeature()
+        {
+            Tags = new List<uint>();
+            Type = GeometryType.Unknown;
+            nativeGeometry = new List<uint>();
+            Geometry = new List<List<PointInt>>();
+            Attributes = new List<AttributeKeyValue>();
+        }
+
         [ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"id", DataFormat = ProtoBuf.DataFormat.TwosComplement)]
         [System.ComponentModel.DefaultValue(default(ulong))]
-        public ulong Id
-        {
-            get { return _id; }
-            set { _id = value; }
-        }
-        readonly List<uint> _tags = new List<uint>();
-        [ProtoBuf.ProtoMember(2, Name = @"tags", DataFormat = ProtoBuf.DataFormat.TwosComplement, Options = ProtoBuf.MemberSerializationOptions.Packed)]
-        public System.Collections.Generic.List<uint> Tags
-        {
-            get { return _tags; }
-        }
+        public ulong Id { get; set; }
 
-        GeometryType _type = GeometryType.Unknown;
+        [ProtoBuf.ProtoMember(2, Name = @"tags", DataFormat = ProtoBuf.DataFormat.TwosComplement, Options = ProtoBuf.MemberSerializationOptions.Packed)]
+        public List<uint> Tags { get; }
+
         [ProtoBuf.ProtoMember(3, IsRequired = false, Name = @"type", DataFormat = ProtoBuf.DataFormat.TwosComplement)]
         [System.ComponentModel.DefaultValue(GeometryType.Unknown)]
-        public GeometryType Type
-        {
-            get { return _type; }
-            set { _type = value; }
-        }
-        readonly List<uint> _geometry = new List<uint>();
-        [ProtoBuf.ProtoMember(4, Name = @"geometry", DataFormat = ProtoBuf.DataFormat.TwosComplement, Options = ProtoBuf.MemberSerializationOptions.Packed)]
-        private List<uint> Geometry
-        {
-            get { return _geometry; }
-        }
+        public GeometryType Type { get; set; }
 
-        ProtoBuf.IExtension _extensionObject;
-        ProtoBuf.IExtension ProtoBuf.IExtensible.GetExtensionObject(bool createIfMissing)
-        { return ProtoBuf.Extensible.GetExtensionObject(ref _extensionObject, createIfMissing); }
+        public List<List<PointInt>> Geometry { get; set; }
 
-        /// <summary>
-        /// Get/Set the feature geometry
-        /// </summary>
-        public List<List<PointInt>> Geometry1 { get; set; }
-
-        /// <summary>
-        /// Get/Set the feature attributes
-        /// </summary>
         public List<AttributeKeyValue> Attributes { get; set; }
 
         public uint Extent { get; set; }
 
+        [ProtoBuf.ProtoMember(4, Name = @"geometry", DataFormat = ProtoBuf.DataFormat.TwosComplement, Options = ProtoBuf.MemberSerializationOptions.Packed)]
+        private List<uint> nativeGeometry { get; }
 
+        ProtoBuf.IExtension ProtoBuf.IExtensible.GetExtensionObject(bool createIfMissing)
+        { return ProtoBuf.Extensible.GetExtensionObject(ref _extensionObject, createIfMissing); }
+     
         public void Initialize(List<string> keys, List<Value> values, uint extent)
         {
             // add the geometry
-            this.Geometry1 = ParseGeometry(this.Geometry, this.Type);
+            this.Geometry = ParseGeometry(this.nativeGeometry, this.Type);
             this.Extent = extent;
 
             this.Attributes = AttributeKeyValue.Parse(keys, values, this.Tags);
@@ -75,20 +63,20 @@ namespace EGIS.Mapbox.Vector.Tile
             switch (this.Type)
             {
                 case GeometryType.Point:
-                    EncodePointGeometry(this.Geometry1, this.Geometry);
+                    EncodePointGeometry(this.Geometry, this.nativeGeometry);
                     break;
                 case GeometryType.LineString:
-                    EncodeLineGeometry(this.Geometry1, this.Geometry);
+                    EncodeLineGeometry(this.Geometry, this.nativeGeometry);
                     break;
                 case GeometryType.Polygon:
-                    EncodePolygonGeometry(this.Geometry1, this.Geometry);
+                    EncodePolygonGeometry(this.Geometry, this.nativeGeometry);
                     break;
                 default:
                     throw new System.Exception(string.Format("Unknown geometry type:{0}", this.Type));
             }
         }
 
-        public static List<List<PointInt>> ParseGeometry(List<uint> geom, GeometryType geomType)
+        private static List<List<PointInt>> ParseGeometry(List<uint> geom, GeometryType geomType)
         {
             int x = 0;
             int y = 0;
@@ -201,7 +189,6 @@ namespace EGIS.Mapbox.Vector.Tile
             }
         }
 
-
         private static void EncodePolygonGeometry(List<List<PointInt>> coordList, List<System.UInt32> geometry)
         {
             PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
@@ -246,20 +233,19 @@ namespace EGIS.Mapbox.Vector.Tile
             }
         }
 
-
         /// <summary>
         /// Parses a Mapbox .mvt binary stream and returns a List of VectorTileLayer objects
         /// </summary>
         /// <param name="stream">stream opened from a .mvt Mapbox tile</param>
         /// <returns></returns>
-        public static List<VectorTileLayer> Parse(Stream stream)
+        public static List<TileLayer> Parse(Stream stream)
         {
             var tile = Serializer.Deserialize<Tile>(stream);
-            var list = new List<VectorTileLayer>();
+            var list = new List<TileLayer>();
             foreach (var layer in tile.Layers)
             {
                 var extent = layer.Extent;
-                var vectorTileLayer = new VectorTileLayer();
+                var vectorTileLayer = new TileLayer();
                 vectorTileLayer.Name = layer.Name;
                 vectorTileLayer.Version = layer.Version;
                 vectorTileLayer.Extent = layer.Extent;
@@ -267,77 +253,12 @@ namespace EGIS.Mapbox.Vector.Tile
                 foreach (var feature in layer.Features)
                 {
                     feature.Initialize(layer.Keys, layer.Values, extent);
-                    vectorTileLayer.VectorTileFeatures.Add(feature);
+                    vectorTileLayer.Features.Add(feature);
                 }
                 list.Add(vectorTileLayer);
             }
             return list;
         }
 
-        /// <summary>
-        /// Encodes a Mapbox .mvt tile
-        /// </summary>
-        /// <param name="layers">List of VectorTileLayers to encode. A Tile should contain at least one layer</param>
-        /// <param name="stream">output .mvt tile stream</param>
-        public static void Encode(List<VectorTileLayer> layers, Stream stream)
-        {
-            Tile tile = new Tile();
-
-            foreach (var vectorTileLayer in layers)
-            {
-                TileLayer tileLayer = new TileLayer();
-                tile.Layers.Add(tileLayer);
-
-                tileLayer.Name = vectorTileLayer.Name;
-                tileLayer.Version = vectorTileLayer.Version;
-                tileLayer.Extent = vectorTileLayer.Extent;
-
-                //index the key value attributes
-                List<string> keys = new List<string>();
-                List<AttributeKeyValue> values = new List<AttributeKeyValue>();
-
-                Dictionary<string, int> keysIndex = new Dictionary<string, int>();
-                Dictionary<dynamic, int> valuesIndex = new Dictionary<dynamic, int>();
-
-                foreach (var feature in vectorTileLayer.VectorTileFeatures)
-                {
-                    foreach (var keyValue in feature.Attributes)
-                    {
-                        if (!keysIndex.ContainsKey(keyValue.Key))
-                        {
-                            keysIndex.Add(keyValue.Key, keys.Count);
-                            keys.Add(keyValue.Key);
-                        }
-                        if (!valuesIndex.ContainsKey(keyValue.Value))
-                        {
-                            valuesIndex.Add(keyValue.Value, values.Count);
-                            values.Add(keyValue);
-                        }
-                    }
-                }
-
-                for (int n = 0; n < vectorTileLayer.VectorTileFeatures.Count; ++n)
-                {
-                    var feature = vectorTileLayer.VectorTileFeatures[n];
-                    tileLayer.Features.Add(feature);
-                    feature.Id = (ulong)(n + 1);
-                    feature.GenerateGeometry();
-                    foreach (var keyValue in feature.Attributes)
-                    {
-                        feature.Tags.Add((uint)keysIndex[keyValue.Key]);
-                        feature.Tags.Add((uint)valuesIndex[keyValue.Value]);
-                    }
-                }
-
-                tileLayer.Keys.AddRange(keys);
-                foreach (var value in values)
-                {
-                    tileLayer.Values.Add(AttributeKeyValue.ToTileValue(value));
-                }
-            }
-
-            Serializer.Serialize<Tile>(stream, tile);
-        }
     }
-
 }

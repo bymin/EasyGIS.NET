@@ -71,14 +71,14 @@ namespace EGIS.Web.Controls
         /// <param name="layers">List of ShapeFile layers</param>
         /// <param name="outputTileFeature">optional OutputTileFeatureDelegate which will be called with each record feature that will be added to the tile. This delegate is useful to exclude feaures at tile zoom levels</param>
         /// <returns></returns>
-        public static List<VectorTileLayer> Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> layers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
+        public static List<TileLayer> Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> layers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
         {
-            List<VectorTileLayer> tileLayers = new List<VectorTileLayer>();
+            List<TileLayer> tileLayers = new List<TileLayer>();
 
             foreach (FeatureLayer featureLayer in layers)
             {
                 var layer = ProcessTile(featureLayer, tileX, tileY, zoomLevel, columnNames, simplificationFactor, tileSize);
-                if (layer.VectorTileFeatures != null && layer.VectorTileFeatures.Count > 0)
+                if (layer.Features != null && layer.Features.Count > 0)
                 {
                     tileLayers.Add(layer);
                 }
@@ -99,12 +99,7 @@ namespace EGIS.Web.Controls
 
         private static TileFeature GetVectorTileFeature(Feature feature, int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor)
         {
-            TileFeature tileFeature = new TileFeature()
-            {
-                Geometry1 = new List<List<PointInt>>(),
-                Attributes = new List<AttributeKeyValue>()
-            };
-
+            TileFeature tileFeature = new TileFeature();
             switch (feature.GetWellKnownType())
             {
                 case WellKnownType.Line:
@@ -150,7 +145,7 @@ namespace EGIS.Web.Controls
                     }
                     if (coordinates.Count > 0)
                     {
-                        tileFeature.Geometry1.Add(coordinates);
+                        tileFeature.Geometry.Add(coordinates);
                     }
                     break;
                 default:
@@ -167,7 +162,7 @@ namespace EGIS.Web.Controls
             return tileFeature;
         }
 
-        private static VectorTileLayer ProcessTile(FeatureLayer featureLayer, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, int simplificationFactor, int tileSize)
+        private static TileLayer ProcessTile(FeatureLayer featureLayer, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, int simplificationFactor, int tileSize)
         {
             RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
             tileBounds.ScaleUp(5);
@@ -183,7 +178,7 @@ namespace EGIS.Web.Controls
             };
 
 
-            VectorTileLayer tileLayer = new VectorTileLayer();
+            TileLayer tileLayer = new TileLayer();
             tileLayer.Extent = (uint)tileSize;
             tileLayer.Version = 2;
             tileLayer.Name = featureLayer.Name;
@@ -198,9 +193,9 @@ namespace EGIS.Web.Controls
                 foreach (Feature feature in features)
                 {
                     TileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds, simplificationFactor);
-                    if (tileFeature.Geometry1.Count > 0)
+                    if (tileFeature.Geometry.Count > 0)
                     {
-                        tileLayer.VectorTileFeatures.Add(tileFeature);
+                        tileLayer.Features.Add(tileFeature);
                     }
                 }
                 IdsCountToExecute = IdsCountToExecute - featureIds.Length;
@@ -248,7 +243,7 @@ namespace EGIS.Web.Controls
                             int index2 = n < parts.Count - 1 ? parts[n + 1] : clippedPoints.Count;
 
                             List<PointInt> lineString = new List<PointInt>();
-                            tileFeature.Geometry1.Add(lineString);
+                            tileFeature.Geometry.Add(lineString);
                             //clipped points store separate x/y pairs so there will be two values per measure
                             for (int i = index1; i < index2; i += 2)
                             {
@@ -280,7 +275,7 @@ namespace EGIS.Web.Controls
                 List<PointInt> clippedRing = ClipRingShape(simplifiedTilePoints, clipBounds);
                 if (clippedRing.Count > 3)
                 {
-                    tileFeature.Geometry1.Add(clippedRing);
+                    tileFeature.Geometry.Add(clippedRing);
                 }
             }
         }
