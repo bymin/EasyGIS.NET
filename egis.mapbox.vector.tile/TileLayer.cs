@@ -10,6 +10,7 @@ namespace EGIS.Mapbox.Vector.Tile
         public TileLayer()
         {
             Features = new List<TileFeature>();
+            Values = new List<Value>();
             Keys = new List<string>();
             this.Extent = 4096;
             Version = 2;

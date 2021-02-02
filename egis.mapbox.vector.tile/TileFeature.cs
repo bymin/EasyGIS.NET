@@ -127,34 +127,34 @@ namespace EGIS.Mapbox.Vector.Tile
             return coordsList;
         }
 
-        private static List<int> EncodePointGeometry(List<List<PointInt>> coordList)
+        private static List<uint> EncodePointGeometry(List<List<PointInt>> coordList)
         {
-            List<int> geometry = new List<uint>();
+            List<uint> geometry = new List<uint>();
             PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
 
             foreach (List<PointInt> points in coordList)
             {
                 if (points.Count == 0) throw new Exception(string.Format("unexpected point count encoding point geometry. Count is {0}", points.Count));
 
-                int commandInteger = (MoveTo & 0x7) | ((uint)points.Count << 3);
+                uint commandInteger = (MoveTo & 0x7) | ((uint)points.Count << 3);
                 geometry.Add(commandInteger);
                 for (int n = 0; n < points.Count; ++n)
                 {
                     int dx = points[n].X - prevCoord.X;
                     int dy = points[n].Y - prevCoord.Y;
                     int parameter = ZigZag.Encode(dx);
-                    geometry.Add((int)parameter);
+                    geometry.Add((uint)parameter);
                     parameter = ZigZag.Encode(dy);
-                    geometry.Add((int)parameter);
+                    geometry.Add((uint)parameter);
                     prevCoord = points[n];
                 }
             }
             return geometry;
         }
 
-        private static List<int> EncodeLineGeometry(List<List<PointInt>> coordList)
+        private static List<uint> EncodeLineGeometry(List<List<PointInt>> coordList)
         {
-            List<int> geometry = new List<uint>();
+            List<uint> geometry = new List<uint>();
 
             PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
             foreach (List<PointInt> points in coordList)
@@ -162,16 +162,16 @@ namespace EGIS.Mapbox.Vector.Tile
                 if (points.Count == 0) throw new Exception(string.Format("unexpected point count encoding line geometry. Count is {0}", points.Count));
 
                 //start of linestring
-                int commandInteger = (MoveTo & 0x7) | (1 << 3);
+                uint commandInteger = (MoveTo & 0x7) | (1 << 3);
                 geometry.Add(commandInteger);
 
                 int dx = points[0].X - prevCoord.X;
                 int dy = points[0].Y - prevCoord.Y;
 
                 int parameter = ZigZag.Encode(dx);
-                geometry.Add((int)parameter);
+                geometry.Add((uint)parameter);
                 parameter = ZigZag.Encode(dy);
-                geometry.Add((int)parameter);
+                geometry.Add((uint)parameter);
 
                 //encode the rest of the points
                 commandInteger = (LineTo & 0x7) | ((uint)(points.Count - 1) << 3);
@@ -181,9 +181,9 @@ namespace EGIS.Mapbox.Vector.Tile
                     dx = points[n].X - points[n - 1].X;
                     dy = points[n].Y - points[n - 1].Y;
                     parameter = ZigZag.Encode(dx);
-                    geometry.Add((int)parameter);
+                    geometry.Add((uint)parameter);
                     parameter = ZigZag.Encode(dy);
-                    geometry.Add((int)parameter);
+                    geometry.Add((uint)parameter);
                 }
                 prevCoord = points[points.Count - 1];
             }
@@ -200,16 +200,16 @@ namespace EGIS.Mapbox.Vector.Tile
                 if (points.Count == 0) throw new Exception(string.Format("unexpected point count encoding polygon geometry. Count is {0}", points.Count));
 
                 //start of ring
-                int commandInteger = (MoveTo & 0x7) | (1 << 3);
+                uint commandInteger = (MoveTo & 0x7) | (1 << 3);
                 geometry.Add(commandInteger);
 
                 int dx = points[0].X - prevCoord.X;
                 int dy = points[0].Y - prevCoord.Y;
 
                 int parameter = ZigZag.Encode(dx);
-                geometry.Add((int)parameter);
+                geometry.Add((uint)parameter);
                 parameter = ZigZag.Encode(dy);
-                geometry.Add((int)parameter);
+                geometry.Add((uint)parameter);
 
                 bool lastPointRepeated = (points[points.Count - 1].X == points[0].X && points[points.Count - 1].Y == points[0].Y);
 
@@ -223,9 +223,9 @@ namespace EGIS.Mapbox.Vector.Tile
                     dx = points[n].X - points[n - 1].X;
                     dy = points[n].Y - points[n - 1].Y;
                     parameter = ZigZag.Encode(dx);
-                    geometry.Add((int)parameter);
+                    geometry.Add((uint)parameter);
                     parameter = ZigZag.Encode(dy);
-                    geometry.Add((int)parameter);
+                    geometry.Add((uint)parameter);
                 }
 
                 //close path
