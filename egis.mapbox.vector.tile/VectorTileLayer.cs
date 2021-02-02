@@ -9,14 +9,14 @@ namespace EGIS.Mapbox.Vector.Tile
     {
         public VectorTileLayer()
         {
-            VectorTileFeatures = new List<EGIS.Mapbox.Vector.Tile.Tile.Feature>();
+            VectorTileFeatures = new List<EGIS.Mapbox.Vector.Tile.TileFeature>();
             Version = 2;
         }
 
         /// <summary>
         /// List of VectorTileFeature. A VectorTileLayer should contain at least one feature
         /// </summary>
-		public List<EGIS.Mapbox.Vector.Tile.Tile.Feature> VectorTileFeatures { get; set; }
+		public List<EGIS.Mapbox.Vector.Tile.TileFeature> VectorTileFeatures { get; set; }
 
         /// <summary>
         /// get/set the name of the Layer. A Layer MUST contain a name.

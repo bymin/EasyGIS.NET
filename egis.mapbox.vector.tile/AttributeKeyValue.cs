@@ -59,9 +59,9 @@ namespace EGIS.Mapbox.Vector.Tile
         public dynamic Value;
         public AttributeType AttributeType;
 
-        public static Tile.Value ToTileValue(AttributeKeyValue value)
+        public static Value ToTileValue(AttributeKeyValue value)
         {
-            Tile.Value tileValue = new Tile.Value();
+            Value tileValue = new Value();
             if (value.AttributeType == AttributeType.StringValue)
             {
                 tileValue.StringValue = value.Value;
@@ -102,7 +102,7 @@ namespace EGIS.Mapbox.Vector.Tile
             return Value.ToString();
         }
 
-        public static List<AttributeKeyValue> Parse(List<string> keys, List<Tile.Value> values, List<uint> tags)
+        public static List<AttributeKeyValue> Parse(List<string> keys, List<Value> values, List<uint> tags)
         {
             var result = new List<AttributeKeyValue>();
 
@@ -115,7 +115,7 @@ namespace EGIS.Mapbox.Vector.Tile
             return result;
         }
 
-        private static AttributeKeyValue GetAttr(string key, Tile.Value value)
+        private static AttributeKeyValue GetAttr(string key, Value value)
         {
             AttributeKeyValue res = null;
 
