@@ -16,5 +16,5 @@ namespace EGIS.Mapbox.Vector.Tile
         {
             return (n << 1) ^ (n >> 31);
         }
-   }
+    }
 }

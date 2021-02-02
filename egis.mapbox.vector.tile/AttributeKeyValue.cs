@@ -56,10 +56,7 @@ namespace EGIS.Mapbox.Vector.Tile
         }
 
         public string Key;
-
         public dynamic Value;
-        //public object Value;
-
         public AttributeType AttributeType;
 
         public static Tile.Value ToTileValue(AttributeKeyValue value)
