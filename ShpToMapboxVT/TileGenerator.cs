@@ -1,5 +1,4 @@
-﻿using EGIS.Mapbox.Vector.Tile;
-using EGIS.Web.Controls;
+﻿using EGIS.Web.Controls;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -225,18 +224,17 @@ namespace ShpToMapboxVT
             List<FeatureLayer> layers = new List<FeatureLayer>();
             layers.Add(shapeFile);
             var vectorTile = VectorTileGenerator.Generate(tileX, tileY, zoom, layers, columnNames, 512, 1);
-            if (vectorTile != null && vectorTile.Count > 0)
+            if (vectorTile != null && vectorTile.Layers.Count > 0)
             {
                 using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
                 {
-                    EGIS.Mapbox.Vector.Tile.Tile.Serialize(vectorTile, fs);
+                    vectorTile.Serialize(fs);
                 }
                 ++totalDataTileCount;
                 return true;
             }
             return false;
         }
-
 
         protected string GetTileName(int tileX, int tileY, int zoom)
         {

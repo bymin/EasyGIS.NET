@@ -71,20 +71,21 @@ namespace EGIS.Web.Controls
         /// <param name="layers">List of ShapeFile layers</param>
         /// <param name="outputTileFeature">optional OutputTileFeatureDelegate which will be called with each record feature that will be added to the tile. This delegate is useful to exclude feaures at tile zoom levels</param>
         /// <returns></returns>
-        public static List<TileLayer> Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> layers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
+        public static EGIS.Mapbox.Vector.Tile.Tile Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> layers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
         {
-            List<TileLayer> tileLayers = new List<TileLayer>();
+            EGIS.Mapbox.Vector.Tile.Tile tile = new Mapbox.Vector.Tile.Tile();
+            //List<TileLayer> tileLayers = new List<TileLayer>();
 
             foreach (FeatureLayer featureLayer in layers)
             {
                 var layer = ProcessTile(featureLayer, tileX, tileY, zoomLevel, columnNames, simplificationFactor, tileSize);
                 if (layer.Features != null && layer.Features.Count > 0)
                 {
-                    tileLayers.Add(layer);
+                    tile.Layers.Add(layer);
                 }
             }
 
-            return tileLayers;
+            return tile;
         }
 
         [Flags]

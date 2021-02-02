@@ -20,25 +20,14 @@ namespace EGIS.Mapbox.Vector.Tile
         ProtoBuf.IExtension ProtoBuf.IExtensible.GetExtensionObject(bool createIfMissing)
         { return ProtoBuf.Extensible.GetExtensionObject(ref _extensionObject, createIfMissing); }
 
-
         /// <summary>
-        /// Encodes a Mapbox .mvt tile
+        /// Serialize to a Mapbox .mvt tile
         /// </summary>
-        /// <param name="layers">List of VectorTileLayers to encode. A Tile should contain at least one layer</param>
         /// <param name="stream">output .mvt tile stream</param>
-        public static void Serialize(List<TileLayer> layers, Stream stream)
+        public void Serialize(Stream stream)
         {
-            Tile tile = new Tile();
-
-            foreach (var vectorTileLayer in layers)
+            foreach (var vectorTileLayer in this.Layers)
             {
-                TileLayer tileLayer = new TileLayer();
-                tile.Layers.Add(tileLayer);
-
-                tileLayer.Name = vectorTileLayer.Name;
-                tileLayer.Version = vectorTileLayer.Version;
-                tileLayer.Extent = vectorTileLayer.Extent;
-
                 //index the key value attributes
                 List<string> keys = new List<string>();
                 List<AttributeKeyValue> values = new List<AttributeKeyValue>();
@@ -66,9 +55,8 @@ namespace EGIS.Mapbox.Vector.Tile
                 for (int n = 0; n < vectorTileLayer.Features.Count; ++n)
                 {
                     var feature = vectorTileLayer.Features[n];
-                    tileLayer.Features.Add(feature);
                     feature.Id = (ulong)(n + 1);
-                    feature.GenerateGeometry();
+                    feature.GenerateNativeGeometry();
                     foreach (var keyValue in feature.Attributes)
                     {
                         feature.Tags.Add((uint)keysIndex[keyValue.Key]);
@@ -76,14 +64,33 @@ namespace EGIS.Mapbox.Vector.Tile
                     }
                 }
 
-                tileLayer.Keys.AddRange(keys);
+                vectorTileLayer.Keys.AddRange(keys);
                 foreach (var value in values)
                 {
-                    tileLayer.Values.Add(AttributeKeyValue.ToTileValue(value));
+                    vectorTileLayer.Values.Add(AttributeKeyValue.ToTileValue(value));
                 }
             }
 
-            Serializer.Serialize<Tile>(stream, tile);
+            Serializer.Serialize<Tile>(stream, this);
+        }
+
+        /// <summary>
+        /// Parses a Mapbox .mvt binary stream and returns a Tile object
+        /// </summary>
+        /// <param name="stream">stream opened from a .mvt Mapbox tile</param>
+        /// <returns></returns>
+        public static Tile Deserialize(Stream stream)
+        {
+            var tile = Serializer.Deserialize<Tile>(stream);
+            foreach (var layer in tile.Layers)
+            {
+                foreach (var feature in layer.Features)
+                {
+                    feature.Initialize(layer.Keys, layer.Values, layer.Extent);
+                    layer.Features.Add(feature);
+                }
+            }
+            return tile;
         }
     }
 }

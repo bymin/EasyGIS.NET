@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace EGIS.Mapbox.Vector.Tile
+﻿namespace EGIS.Mapbox.Vector.Tile
 {
     public struct RectangleInt
     {
