@@ -101,7 +101,6 @@ namespace EGIS.Web.Controls
         {
             EGIS.Mapbox.Vector.Tile.Tile.Feature tileFeature = new EGIS.Mapbox.Vector.Tile.Tile.Feature()
             {
-                Id1 = feature.Id,
                 Geometry1 = new List<List<PointInt>>(),
                 Attributes = new List<AttributeKeyValue>()
             };
