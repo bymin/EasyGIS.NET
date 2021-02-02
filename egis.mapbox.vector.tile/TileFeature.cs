@@ -19,7 +19,7 @@ namespace EGIS.Mapbox.Vector.Tile
             Type = GeometryType.Unknown;
             nativeGeometry = new List<uint>();
             Geometry = new List<List<PointInt>>();
-            Attributes = new List<AttributeKeyValue>();
+            Attributes = new List<Value>();
         }
 
         [ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"id", DataFormat = ProtoBuf.DataFormat.TwosComplement)]
@@ -33,15 +33,14 @@ namespace EGIS.Mapbox.Vector.Tile
         [DefaultValue(GeometryType.Unknown)]
         public GeometryType Type { get; set; }
 
-        public List<List<PointInt>> Geometry { get; set; }
-
-        public List<AttributeKeyValue> Attributes { get; set; }
-
-        public uint Extent { get; set; }
-
         [ProtoBuf.ProtoMember(4, Name = @"geometry", DataFormat = ProtoBuf.DataFormat.TwosComplement, Options = ProtoBuf.MemberSerializationOptions.Packed)]
         private List<uint> nativeGeometry { get; set; }
 
+        public List<List<PointInt>> Geometry { get; set; }
+
+        public List<Value> Attributes { get; set; }
+
+        public uint Extent { get; set; }
         ProtoBuf.IExtension ProtoBuf.IExtensible.GetExtensionObject(bool createIfMissing)
         { return ProtoBuf.Extensible.GetExtensionObject(ref _extensionObject, createIfMissing); }
      
@@ -51,7 +50,7 @@ namespace EGIS.Mapbox.Vector.Tile
             this.Geometry = ParseGeometry(this.nativeGeometry, this.Type);
             this.Extent = extent;
 
-            this.Attributes = AttributeKeyValue.Parse(keys, values, this.Tags);
+            this.Attributes = Value.Parse(keys, values, this.Tags);
         }
 
         public void GenerateNativeGeometry()

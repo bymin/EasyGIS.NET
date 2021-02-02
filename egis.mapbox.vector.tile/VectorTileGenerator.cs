@@ -157,7 +157,7 @@ namespace EGIS.Web.Controls
             //add the record attributes
             foreach (var attributes in feature.ColumnValues)
             {
-                tileFeature.Attributes.Add(new AttributeKeyValue(attributes.Key, attributes.Value));
+                tileFeature.Attributes.Add(new Value(attributes.Key, attributes.Value));
             }
 
             return tileFeature;

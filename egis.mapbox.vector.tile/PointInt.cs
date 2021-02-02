@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EGIS.Mapbox.Vector.Tile
+﻿namespace EGIS.Mapbox.Vector.Tile
 {
     public struct PointInt
     {
@@ -9,7 +7,9 @@ namespace EGIS.Mapbox.Vector.Tile
             X = x;
             Y = y;
         }
+
         public int X { get; set; }
+
         public int Y { get; set; }
 
         public override bool Equals(object obj)
@@ -31,9 +31,10 @@ namespace EGIS.Mapbox.Vector.Tile
         {
             return !((a.X == b.X) && (a.Y == b.Y));
         }
+
         public override int GetHashCode()
         {
-            return X.GetHashCode() ^ Y.GetHashCode() ;
+            return X.GetHashCode() ^ Y.GetHashCode();
         }
     }
 }

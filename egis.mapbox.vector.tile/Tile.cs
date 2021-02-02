@@ -30,7 +30,7 @@ namespace EGIS.Mapbox.Vector.Tile
             {
                 //index the key value attributes
                 List<string> keys = new List<string>();
-                List<AttributeKeyValue> values = new List<AttributeKeyValue>();
+                List<Value> values = new List<Value>();
 
                 Dictionary<string, int> keysIndex = new Dictionary<string, int>();
                 Dictionary<dynamic, int> valuesIndex = new Dictionary<dynamic, int>();
@@ -44,9 +44,9 @@ namespace EGIS.Mapbox.Vector.Tile
                             keysIndex.Add(keyValue.Key, keys.Count);
                             keys.Add(keyValue.Key);
                         }
-                        if (!valuesIndex.ContainsKey(keyValue.Value))
+                        if (!valuesIndex.ContainsKey(keyValue))
                         {
-                            valuesIndex.Add(keyValue.Value, values.Count);
+                            valuesIndex.Add(keyValue, values.Count);
                             values.Add(keyValue);
                         }
                     }
@@ -60,14 +60,14 @@ namespace EGIS.Mapbox.Vector.Tile
                     foreach (var keyValue in feature.Attributes)
                     {
                         feature.Tags.Add((uint)keysIndex[keyValue.Key]);
-                        feature.Tags.Add((uint)valuesIndex[keyValue.Value]);
+                        feature.Tags.Add((uint)valuesIndex[keyValue]);
                     }
                 }
 
                 vectorTileLayer.Keys.AddRange(keys);
                 foreach (var value in values)
                 {
-                    vectorTileLayer.Values.Add(AttributeKeyValue.ToTileValue(value));
+                    vectorTileLayer.Values.Add(value);
                 }
             }
 
