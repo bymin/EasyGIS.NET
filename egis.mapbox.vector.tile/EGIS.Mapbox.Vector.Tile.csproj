@@ -20,10 +20,6 @@
 
   <ItemGroup>
     <Compile Remove="ClassifyRings.cs" />
-    <Compile Remove="Extensions\CoordinateExtensions.cs" />
-    <Compile Remove="Extensions\IEnumerableExtensions.cs" />
-    <Compile Remove="Extensions\VectorTileFeatureExtensions.cs" />
-    <Compile Remove="Extensions\VectorTileLayerExtensions.cs" />
     <Compile Remove="VTPolygon.cs" />
   </ItemGroup>
 
@@ -43,11 +39,10 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="Extensions\" />
-  </ItemGroup>
-  
-  <ItemGroup>
     <AdditionalDesignTimeBuildInput Remove="FakesAssemblies\**" />
+    <Compile Remove="Extensions\**" />
+    <EmbeddedResource Remove="Extensions\**" />
+    <None Remove="Extensions\**" />
   </ItemGroup>
 
 </Project>

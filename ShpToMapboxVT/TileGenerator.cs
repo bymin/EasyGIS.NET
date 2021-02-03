@@ -196,10 +196,6 @@ namespace ShpToMapboxVT
         {
             Console.WriteLine($"Tile: {zoom}-{tileX}-{tileY}");
             if (cancellationToken.IsCancellationRequested) return;
-            //if (tileY != 1155 || tileX != 461)
-            //{
-            //    return;
-            //}
             bool result = ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes);
 
             ++tileSpeedCount;
