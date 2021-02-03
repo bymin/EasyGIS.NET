@@ -19,7 +19,7 @@ namespace EGIS.Mapbox.Vector.Tile
             Type = GeometryType.Unknown;
             nativeGeometry = new List<uint>();
             Geometry = new List<List<PointInt>>();
-            Attributes = new List<Value>();
+            Attributes = new List<TileAttribute>();
         }
 
         [ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"id", DataFormat = ProtoBuf.DataFormat.TwosComplement)]
@@ -38,19 +38,25 @@ namespace EGIS.Mapbox.Vector.Tile
 
         public List<List<PointInt>> Geometry { get; set; }
 
-        public List<Value> Attributes { get; set; }
+        public List<TileAttribute> Attributes { get; set; }
 
         public uint Extent { get; set; }
         ProtoBuf.IExtension ProtoBuf.IExtensible.GetExtensionObject(bool createIfMissing)
         { return ProtoBuf.Extensible.GetExtensionObject(ref _extensionObject, createIfMissing); }
-     
-        public void Initialize(List<string> keys, List<Value> values, uint extent)
-        {
-            // add the geometry
-            this.Geometry = ParseGeometry(this.nativeGeometry, this.Type);
-            this.Extent = extent;
 
-            this.Attributes = Value.Parse(keys, values, this.Tags);
+        public void FillInTheExternalProperties(List<string> keys, List<TileAttribute> values, uint extent)
+        {
+            this.Extent = extent;
+            this.Geometry = GetGeometry(this.nativeGeometry, this.Type);
+            this.Attributes = new List<TileAttribute>();
+
+            for (var i = 0; i < this.Tags.Count;)
+            {
+                var key = keys[(int)this.Tags[i++]];
+                var val = values[(int)this.Tags[i++]];
+                val.Key = key;
+                this.Attributes.Add(val);
+            }
         }
 
         public void GenerateNativeGeometry()
@@ -71,7 +77,7 @@ namespace EGIS.Mapbox.Vector.Tile
             }
         }
 
-        private static List<List<PointInt>> ParseGeometry(List<uint> geom, GeometryType geomType)
+        private static List<List<PointInt>> GetGeometry(List<uint> geom, GeometryType geomType)
         {
             int x = 0;
             int y = 0;

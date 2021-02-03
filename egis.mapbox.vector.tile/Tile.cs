@@ -26,51 +26,6 @@ namespace EGIS.Mapbox.Vector.Tile
         /// <param name="stream">output .mvt tile stream</param>
         public void Serialize(Stream stream)
         {
-            foreach (var vectorTileLayer in this.Layers)
-            {
-                //index the key value attributes
-                List<string> keys = new List<string>();
-                List<Value> values = new List<Value>();
-
-                Dictionary<string, int> keysIndex = new Dictionary<string, int>();
-                Dictionary<dynamic, int> valuesIndex = new Dictionary<dynamic, int>();
-
-                foreach (var feature in vectorTileLayer.Features)
-                {
-                    foreach (var keyValue in feature.Attributes)
-                    {
-                        if (!keysIndex.ContainsKey(keyValue.Key))
-                        {
-                            keysIndex.Add(keyValue.Key, keys.Count);
-                            keys.Add(keyValue.Key);
-                        }
-                        if (!valuesIndex.ContainsKey(keyValue))
-                        {
-                            valuesIndex.Add(keyValue, values.Count);
-                            values.Add(keyValue);
-                        }
-                    }
-                }
-
-                for (int n = 0; n < vectorTileLayer.Features.Count; ++n)
-                {
-                    var feature = vectorTileLayer.Features[n];
-                    feature.Id = (ulong)(n + 1);
-                    feature.GenerateNativeGeometry();
-                    foreach (var keyValue in feature.Attributes)
-                    {
-                        feature.Tags.Add((uint)keysIndex[keyValue.Key]);
-                        feature.Tags.Add((uint)valuesIndex[keyValue]);
-                    }
-                }
-
-                vectorTileLayer.Keys.AddRange(keys);
-                foreach (var value in values)
-                {
-                    vectorTileLayer.Values.Add(value);
-                }
-            }
-
             Serializer.Serialize<Tile>(stream, this);
         }
 
@@ -84,11 +39,7 @@ namespace EGIS.Mapbox.Vector.Tile
             var tile = Serializer.Deserialize<Tile>(stream);
             foreach (var layer in tile.Layers)
             {
-                foreach (var feature in layer.Features)
-                {
-                    feature.Initialize(layer.Keys, layer.Values, layer.Extent);
-                    layer.Features.Add(feature);
-                }
+                layer.FillInTheExternalProperties();
             }
             return tile;
         }

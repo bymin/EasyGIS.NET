@@ -196,6 +196,10 @@ namespace ShpToMapboxVT
         {
             Console.WriteLine($"Tile: {zoom}-{tileX}-{tileY}");
             if (cancellationToken.IsCancellationRequested) return;
+            //if (tileY != 1155 || tileX != 461)
+            //{
+            //    return;
+            //}
             bool result = ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes);
 
             ++tileSpeedCount;
@@ -226,6 +230,17 @@ namespace ShpToMapboxVT
             var vectorTile = VectorTileGenerator.Generate(tileX, tileY, zoom, layers, columnNames, 512, 1);
             if (vectorTile != null && vectorTile.Layers.Count > 0)
             {
+                //using (FileStream fs1 = new FileStream(GetTileName(tileX, tileY, zoom).Replace(".mvt", ".mvt1"), FileMode.Create, FileAccess.ReadWrite))
+                //{
+                //    using (FileStream fs2 = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
+                //    {
+                //        vectorTile.Serialize(fs1);
+
+                //        fs1.Position = 0;
+                //        EGIS.Mapbox.Vector.Tile.Tile a = EGIS.Mapbox.Vector.Tile.Tile.Deserialize(fs1);
+                //        a.Serialize(fs2);
+                //    }
+                //}
                 using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
                 {
                     vectorTile.Serialize(fs);

@@ -74,7 +74,6 @@ namespace EGIS.Web.Controls
         public static EGIS.Mapbox.Vector.Tile.Tile Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> layers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
         {
             EGIS.Mapbox.Vector.Tile.Tile tile = new Mapbox.Vector.Tile.Tile();
-            //List<TileLayer> tileLayers = new List<TileLayer>();
 
             foreach (FeatureLayer featureLayer in layers)
             {
@@ -157,7 +156,7 @@ namespace EGIS.Web.Controls
             //add the record attributes
             foreach (var attributes in feature.ColumnValues)
             {
-                tileFeature.Attributes.Add(new Value(attributes.Key, attributes.Value));
+                tileFeature.Attributes.Add(new TileAttribute(attributes.Key, attributes.Value));
             }
 
             return tileFeature;
@@ -202,7 +201,7 @@ namespace EGIS.Web.Controls
                 IdsCountToExecute = IdsCountToExecute - featureIds.Length;
                 startIndex = startIndex + featureIds.Length;
             }
-
+            tileLayer.FillInTheInternalProperties();
             return tileLayer;
         }
         private static string[] GetSubString(Collection<string> sourceString, int startIndex, int endIndex)
