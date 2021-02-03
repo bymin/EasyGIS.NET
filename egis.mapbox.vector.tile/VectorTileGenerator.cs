@@ -26,12 +26,9 @@
 #endregion
 
 using EGIS.Mapbox.Vector.Tile;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Drawing;
-using System.IO;
 using System.Linq;
 using ThinkGeo.Core;
 
@@ -68,14 +65,14 @@ namespace EGIS.Web.Controls
         /// <param name="tileX">Tile X coordinate</param>
         /// <param name="tileY">Tile Y coordinate</param>
         /// <param name="zoomLevel">Tile zoom level</param>
-        /// <param name="layers">List of ShapeFile layers</param>
+        /// <param name="featureLayers">List of ShapeFile layers</param>
         /// <param name="outputTileFeature">optional OutputTileFeatureDelegate which will be called with each record feature that will be added to the tile. This delegate is useful to exclude feaures at tile zoom levels</param>
         /// <returns></returns>
-        public static EGIS.Mapbox.Vector.Tile.Tile Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> layers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
+        public static EGIS.Mapbox.Vector.Tile.Tile Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> featureLayers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
         {
             EGIS.Mapbox.Vector.Tile.Tile tile = new Mapbox.Vector.Tile.Tile();
 
-            foreach (FeatureLayer featureLayer in layers)
+            foreach (FeatureLayer featureLayer in featureLayers)
             {
                 var layer = ProcessTile(featureLayer, tileX, tileY, zoomLevel, columnNames, simplificationFactor, tileSize);
                 if (layer.Features != null && layer.Features.Count > 0)
@@ -95,9 +92,7 @@ namespace EGIS.Web.Controls
 
         #region private members
 
-        private static Dictionary<string, RectangleShape> dictionaryCache = new Dictionary<string, RectangleShape>();
-
-        private static TileFeature GetVectorTileFeature(Feature feature, int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor)
+        private static TileFeature GetVectorTileFeature(Feature feature, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor, RectangleShape tileBoundingBox)
         {
             TileFeature tileFeature = new TileFeature();
             switch (feature.GetWellKnownType())
@@ -106,7 +101,7 @@ namespace EGIS.Web.Controls
                 case WellKnownType.Multiline:
                     tileFeature.Type = Mapbox.Vector.Tile.GeometryType.LineString;
                     MultilineShape multiLineShape = new MultilineShape(feature.GetWellKnownBinary());
-                    ProcessLineShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, multiLineShape, simplificationFactor);
+                    ProcessLineShape(zoom, tileSize, clipBounds, tileFeature, multiLineShape, simplificationFactor, tileBoundingBox);
                     break;
                 case WellKnownType.Polygon:
                 case WellKnownType.Multipolygon:
@@ -114,10 +109,10 @@ namespace EGIS.Web.Controls
                     MultipolygonShape multiPolygonShape = new MultipolygonShape(feature.GetWellKnownBinary());
                     foreach (PolygonShape polygonShape in multiPolygonShape.Polygons)
                     {
-                        ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, polygonShape.OuterRing, simplificationFactor);
+                        ProcessRingShape(zoom, tileSize, clipBounds, tileFeature, polygonShape.OuterRing, simplificationFactor, tileBoundingBox);
                         foreach (RingShape ringShape in polygonShape.InnerRings)
                         {
-                            ProcessRingShape(tileX, tileY, zoom, tileSize, clipBounds, tileFeature, ringShape, simplificationFactor);
+                            ProcessRingShape(zoom, tileSize, clipBounds, tileFeature, ringShape, simplificationFactor, tileBoundingBox);
                         }
                     }
                     break;
@@ -140,7 +135,7 @@ namespace EGIS.Web.Controls
 
                     foreach (PointShape point in multiPointShape.Points)
                     {
-                        PointInt pointI = WorldPointToTilePoint(point.X, point.Y, zoom, tileX, tileY, tileSize);
+                        PointInt pointI = WorldPointToTilePoint(point.X, point.Y, zoom, tileSize, tileBoundingBox);
                         coordinates.Add(new PointInt(pointI.X, pointI.Y));
                     }
                     if (coordinates.Count > 0)
@@ -164,11 +159,12 @@ namespace EGIS.Web.Controls
 
         private static TileLayer ProcessTile(FeatureLayer featureLayer, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, int simplificationFactor, int tileSize)
         {
-            RectangleShape tileBounds = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
-            tileBounds.ScaleUp(5);
+            RectangleShape tileBoundingBox = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
+            RectangleShape scaledUpBoudingBox = new RectangleShape(tileBoundingBox.GetWellKnownBinary());
+            scaledUpBoudingBox.ScaleUp(5);
             featureLayer.Open();
 
-            Collection<string> allFeatureIds = featureLayer.FeatureSource.GetFeatureIdsInsideBoundingBox(tileBounds);
+            Collection<string> allFeatureIds = featureLayer.FeatureSource.GetFeatureIdsInsideBoundingBox(scaledUpBoudingBox);
             RectangleInt clipBounds = new RectangleInt()
             {
                 XMin = -20,
@@ -192,7 +188,7 @@ namespace EGIS.Web.Controls
                 Collection<Feature> features = featureLayer.FeatureSource.GetFeaturesByIds(featureIds, columnNames);
                 foreach (Feature feature in features)
                 {
-                    TileFeature tileFeature = GetVectorTileFeature(feature, tileX, tileY, zoom, tileSize, clipBounds, simplificationFactor);
+                    TileFeature tileFeature = GetVectorTileFeature(feature, zoom, tileSize, clipBounds, simplificationFactor, tileBoundingBox);
                     if (tileFeature.Geometry.Count > 0)
                     {
                         tileLayer.Features.Add(tileFeature);
@@ -204,25 +200,15 @@ namespace EGIS.Web.Controls
             tileLayer.FillInTheInternalProperties();
             return tileLayer;
         }
-        private static string[] GetSubString(Collection<string> sourceString, int startIndex, int endIndex)
-        {
-            string[] result = new string[endIndex];
-            for (int i = 0; i < result.Length; i++)
-            {
-                result[i] = sourceString[startIndex + i];
-            }
-            return result;
-        }
 
-
-        private static void ProcessLineShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, EGIS.Mapbox.Vector.Tile.TileFeature tileFeature, MultilineShape multiLineShape, int simplificationFactor)
+        private static void ProcessLineShape(int zoom, int tileSize, RectangleInt clipBounds, TileFeature tileFeature, MultilineShape multiLineShape, int simplificationFactor, RectangleShape tileBoundingBox)
         {
             foreach (LineShape line in multiLineShape.Lines)
             {
                 PointInt[] pixelPoints = new PointInt[line.Vertices.Count];
                 for (int n = 0; n < line.Vertices.Count; ++n)
                 {
-                    pixelPoints[n] = WorldPointToTilePoint(line.Vertices[n].X, line.Vertices[n].Y, zoom, tileX, tileY, tileSize);
+                    pixelPoints[n] = WorldPointToTilePoint(line.Vertices[n].X, line.Vertices[n].Y, zoom, tileSize, tileBoundingBox);
                 }
 
                 PointInt[] simplifiedPixelPoints = SimplifyPointData(pixelPoints, simplificationFactor);
@@ -255,12 +241,12 @@ namespace EGIS.Web.Controls
             }
         }
 
-        private static void ProcessRingShape(int tileX, int tileY, int zoom, int tileSize, RectangleInt clipBounds, EGIS.Mapbox.Vector.Tile.TileFeature tileFeature, RingShape ringShape, int simplificationFactor)
+        private static void ProcessRingShape(int zoom, int tileSize, RectangleInt clipBounds, TileFeature tileFeature, RingShape ringShape, int simplificationFactor, RectangleShape tileBoundingBox)
         {
             PointInt[] tilePoints = new PointInt[ringShape.Vertices.Count];
             for (int n = 0; n < ringShape.Vertices.Count; ++n)
             {
-                tilePoints[n] = WorldPointToTilePoint(ringShape.Vertices[n].X, ringShape.Vertices[n].Y, zoom, tileX, tileY, tileSize);
+                tilePoints[n] = WorldPointToTilePoint(ringShape.Vertices[n].X, ringShape.Vertices[n].Y, zoom, tileSize, tileBoundingBox);
             }
             PointInt[] simplifiedTilePoints = SimplifyPointData(tilePoints, simplificationFactor);
 
@@ -344,25 +330,25 @@ namespace EGIS.Web.Controls
             return new RectangleShape(bbox.UpperLeftPoint.X, bbox.UpperLeftPoint.Y, bbox.LowerRightPoint.X, bbox.LowerRightPoint.Y);
         }
 
-        private static PointInt WorldPointToTilePoint(double pointX, double pointY, int zoomLevel, int tileX, int tileY, int tileSize)
+        private static PointInt WorldPointToTilePoint(double pointX, double pointY, int zoomLevel, int tileSize, RectangleShape tileBoundingBox)
         {
-            string key = $"{zoomLevel}-{tileX}-{tileY}";
-            if (!dictionaryCache.ContainsKey(key))
-            {
-                SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
-                double currentScale = GetZoomLevelSetScale(zoomLevelSet, zoomLevel);
-                var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, 512, 512, GeographyUnit.Meter);
-                dictionaryCache.Add(key, tileMatrix.GetCell(tileX, tileY).BoundingBox);
-            }
-
-            RectangleShape bbox = dictionaryCache[key];
             double scale = ((double)tileSize / 40075016.4629396) * (1 << zoomLevel);
             PointInt result = new PointInt()
             {
-                X = (int)Math.Round((pointX - bbox.LowerLeftPoint.X) * scale),
-                Y = (int)Math.Round((bbox.UpperLeftPoint.Y - pointY) * scale)
+                X = (int)Math.Round((pointX - tileBoundingBox.LowerLeftPoint.X) * scale),
+                Y = (int)Math.Round((tileBoundingBox.UpperLeftPoint.Y - pointY) * scale)
             };
 
+            return result;
+        }
+
+        private static string[] GetSubString(Collection<string> sourceString, int startIndex, int endIndex)
+        {
+            string[] result = new string[endIndex];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = sourceString[startIndex + i];
+            }
             return result;
         }
 

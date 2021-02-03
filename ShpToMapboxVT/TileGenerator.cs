@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using ThinkGeo.Core;
 
 
@@ -105,7 +106,7 @@ namespace ShpToMapboxVT
         /// </summary>
         /// <param name="shapeFileName">full path to the input shapefile to process</param>        
         /// <param name="includedAttributes">List of attributes to export. If null all attributes will be output</param>
-        public void Process(string shapeFileName, System.Threading.CancellationToken cancellationToken, List<string> includedAttributes = null)
+        public async Task Process(string shapeFileName, CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             ShapeFileFeatureLayer shapeFile = new ShapeFileFeatureLayer(shapeFileName);
             shapeFile.Open();
@@ -117,7 +118,7 @@ namespace ShpToMapboxVT
                 shapeFile.FeatureSource.ProjectionConverter.Open();
             }
 
-            Process(shapeFile, cancellationToken, includedAttributes);
+            await Process(shapeFile, cancellationToken, includedAttributes);
         }
 
         public static double GetZoomLevelIndex(ZoomLevelSet zoomLevelSet, int zoomLevel)
@@ -149,7 +150,7 @@ namespace ShpToMapboxVT
             }
         }
 
-        private void Process(ShapeFileFeatureLayer shapeFile, CancellationToken cancellationToken, List<string> includedAttributes = null)
+        private async Task Process(ShapeFileFeatureLayer shapeFile, CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             int zoom = Math.Max(StartZoomLevel, 0);
             int endZoomLevel = Math.Min(Math.Max(zoom, EndZoomLevel), 49);
@@ -157,9 +158,9 @@ namespace ShpToMapboxVT
 
             Console.Out.WriteLine("Processing tiles. StartZoom:{0}, EndZoom:{1}", zoom, endZoomLevel);
 
-            if (!System.IO.Directory.Exists(BaseOutputDirectory))
+            if (!Directory.Exists(BaseOutputDirectory))
             {
-                System.IO.Directory.CreateDirectory(BaseOutputDirectory);
+                Directory.CreateDirectory(BaseOutputDirectory);
             }
 
             RectangleShape shapeFileBounds = shapeFile.GetBoundingBox();
@@ -170,18 +171,25 @@ namespace ShpToMapboxVT
 
             var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, tileSize, tileSize, GeographyUnit.Meter);
             var tileRange = tileMatrix.GetIntersectingRowColumnRange(shapeFileBounds);
+            shapeFile.Close();
 
             processTileCount = totalDataTileCount = tileSpeedCount = 0;
             processingStartTime = DateTime.Now;
             tileSpeedStartTime = DateTime.Now;
 
-
+            List<Task> tasks = new List<Task>();
             for (long tileY = tileRange.MinRowIndex; tileY <= tileRange.MaxRowIndex && !cancellationToken.IsCancellationRequested; ++tileY)
             {
                 for (long tileX = tileRange.MinColumnIndex; tileX <= tileRange.MaxColumnIndex && !cancellationToken.IsCancellationRequested; ++tileX)
                 {
-                    ProcessTileRecursive(shapeFile, (int)tileY, (int)tileX, zoom, endZoomLevel, cancellationToken, includedAttributes);
+                    Task task = ProcessTileRecursive(shapeFile, (int)tileY, (int)tileX, zoom, endZoomLevel, cancellationToken, includedAttributes);
+                    tasks.Add(task);
                 }
+            }
+
+            foreach (var task in tasks)
+            {
+                await task;
             }
 
             if (tileSpeedCount >= 1000)
@@ -192,11 +200,11 @@ namespace ShpToMapboxVT
             }
         }
 
-        private void ProcessTileRecursive(FeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, CancellationToken cancellationToken, List<string> includedAttributes = null)
+        private async Task ProcessTileRecursive(FeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, CancellationToken cancellationToken, List<string> includedAttributes = null)
         {
             Console.WriteLine($"Tile: {zoom}-{tileX}-{tileY}");
             if (cancellationToken.IsCancellationRequested) return;
-            bool result = ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes);
+            bool result = await ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes);
 
             ++tileSpeedCount;
             if (tileSpeedCount >= 1000)
@@ -211,21 +219,33 @@ namespace ShpToMapboxVT
 
             if (result && zoom < maxZoomLevel)
             {
-                ProcessTileRecursive(shapeFile, tileX << 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
-                ProcessTileRecursive(shapeFile, (tileX << 1) + 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
-                ProcessTileRecursive(shapeFile, tileX << 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
-                ProcessTileRecursive(shapeFile, (tileX << 1) + 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes);
+                List<Task> tasks = new List<Task>();
+
+                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, includedAttributes));
+                foreach (var task in tasks)
+                {
+                    await task;
+                }
             }
         }
 
-        private bool ProcessTile(FeatureLayer shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames)
+        private async Task<bool> ProcessTile(FeatureLayer shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames)
         {
             ++processTileCount;
             List<FeatureLayer> layers = new List<FeatureLayer>();
-            layers.Add(shapeFile);
-            var vectorTile = VectorTileGenerator.Generate(tileX, tileY, zoom, layers, columnNames, 512, 1);
+            FeatureLayer layer = (FeatureLayer)shapeFile.CloneDeep();
+            layers.Add(layer);
+            EGIS.Mapbox.Vector.Tile.Tile vectorTile = new EGIS.Mapbox.Vector.Tile.Tile();
+            await Task.Run(() =>
+            {
+                vectorTile = VectorTileGenerator.Generate(tileX, tileY, zoom, layers, columnNames, 512, 1);
+            });
             if (vectorTile != null && vectorTile.Layers.Count > 0)
             {
+                // The following code is for testing Deserialization. 
                 //using (FileStream fs1 = new FileStream(GetTileName(tileX, tileY, zoom).Replace(".mvt", ".mvt1"), FileMode.Create, FileAccess.ReadWrite))
                 //{
                 //    using (FileStream fs2 = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
@@ -233,14 +253,18 @@ namespace ShpToMapboxVT
                 //        vectorTile.Serialize(fs1);
 
                 //        fs1.Position = 0;
-                //        EGIS.Mapbox.Vector.Tile.Tile a = EGIS.Mapbox.Vector.Tile.Tile.Deserialize(fs1);
-                //        a.Serialize(fs2);
+                //        EGIS.Mapbox.Vector.Tile.Tile tmpTile = EGIS.Mapbox.Vector.Tile.Tile.Deserialize(fs1);
+                //        tmpTile.Serialize(fs2);
                 //    }
                 //}
-                using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
+                await Task.Run(() =>
                 {
-                    vectorTile.Serialize(fs);
-                }
+                    using (FileStream fs = new FileStream(GetTileName(tileX, tileY, zoom), FileMode.Create, FileAccess.ReadWrite))
+                    {
+                        vectorTile.Serialize(fs);
+                    }
+                });
+
                 ++totalDataTileCount;
                 return true;
             }

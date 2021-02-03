@@ -158,32 +158,29 @@ namespace ShpToMapboxVT
             }
             cancellationTokenSource = new System.Threading.CancellationTokenSource();
 
-            await Task.Run(() =>
+            TileGenerator generator = new TileGenerator()
             {
-                TileGenerator generator = new TileGenerator()
+                BaseOutputDirectory = Path.GetDirectoryName(this.txtMbtilesFilePathname.Text),
+                StartZoomLevel = (int)nudStartZoom.Value,
+                EndZoomLevel = (int)nudEndZoom.Value,
+            };
+            generator.StatusMessage += Generator_StatusMessage;
+            try
+            {
+                List<string> attributes = new List<string>();
+                for (int i = 0; i < clbSelectedAttributes.CheckedItems.Count; ++i)
                 {
-                    BaseOutputDirectory = Path.GetDirectoryName(this.txtMbtilesFilePathname.Text),
-                    StartZoomLevel = (int)nudStartZoom.Value,
-                    EndZoomLevel = (int)nudEndZoom.Value,
-                };
-                generator.StatusMessage += Generator_StatusMessage;
-                try
-                {
-                    List<string> attributes = new List<string>();
-                    for (int i = 0; i < clbSelectedAttributes.CheckedItems.Count; ++i)
-                    {
-                        attributes.Add(clbSelectedAttributes.CheckedItems[i].ToString());
-                    }
-                    OutputMessage("Processing Vector tiles..\n");
-                    DateTime tick = DateTime.Now;
-                    generator.Process(this.txtInputShapeFile.Text, cancellationTokenSource.Token, attributes);
-                    OutputMessage("Processing Vector tiles complete. Elapsed time:" + DateTime.Now.Subtract(tick) + "\n");
+                    attributes.Add(clbSelectedAttributes.CheckedItems[i].ToString());
                 }
-                finally
-                {
-                    generator.StatusMessage -= Generator_StatusMessage;
-                }
-            });
+                OutputMessage("Processing Vector tiles..\n");
+                DateTime tick = DateTime.Now;
+                await generator.Process(this.txtInputShapeFile.Text, cancellationTokenSource.Token, attributes);
+                OutputMessage("Processing Vector tiles complete. Elapsed time:" + DateTime.Now.Subtract(tick) + "\n");
+            }
+            finally
+            {
+                generator.StatusMessage -= Generator_StatusMessage;
+            }
         }
 
         public static byte[] GZipData(byte[] bytes)
@@ -217,7 +214,7 @@ namespace ShpToMapboxVT
             layer.Close();
 
             PointShape centerPoint = extent.GetCenterPoint();
-            string center = $"{centerPoint.X},{centerPoint.Y},{maxZoom}";   
+            string center = $"{centerPoint.X},{centerPoint.Y},{maxZoom}";
             string bounds = $"{extent.UpperLeftPoint.X},{extent.UpperLeftPoint.Y},{extent.LowerRightPoint.X},{extent.LowerRightPoint.Y}";
 
             ThinkGeoMBTilesLayer.CreateDatabase(targetFilePath);
