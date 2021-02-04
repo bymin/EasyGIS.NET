@@ -68,7 +68,7 @@ namespace EGIS.Mapbox.Vector.Tile
             {
                 var feature = this.Features[n];
                 feature.Id = (ulong)(n + 1);
-                feature.GenerateNativeGeometry();
+                feature.FillInNativeGeometry();
                 foreach (var keyValue in feature.Attributes)
                 {
                     feature.Tags.Add((uint)keysIndex[keyValue.Key]);

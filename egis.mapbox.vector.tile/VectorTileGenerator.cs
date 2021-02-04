@@ -34,29 +34,6 @@ using ThinkGeo.Core;
 
 namespace EGIS.Web.Controls
 {
-    /// <summary>
-    /// Utility class to generate Vector Tile data from ShapeFile layers.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This class can be combined with EGIS.Mapbox.Vector.Tile.VectorTileParser to create Mapbox vector tiles.
-    /// </para>
-    /// </remarks>
-    /// <example> Sample code to create a Mapbox Vector Tile from a shapefile. 
-    /// <code>        
-    ///public void CreateMapboxTile(List&lt;ShapeFile&gt; mapLayers, string vectorTileFileName)
-    ///{
-    ///    //create a VectorTileGenerator
-    ///    VectorTileGenerator tileGenerator = new VectorTileGenerator();
-    ///    List&lt;VectorTileLayer&gt; tileLayers = tileGenerator.Generate(tileX, tileY, zoomLevel, mapLayers);
-    ///    //encode the vector tile in Mapbox vector tile format
-    ///    using (System.IO.FileStream fs = new System.IO.FileStream(vectorTileFileName, System.IO.FileMode.Create))
-    ///    {
-    ///        EGIS.Mapbox.Vector.Tile.VectorTileParser.Encode(tileLayers, fs);
-    ///    }
-    ///}
-    /// </code>                                                   
-    /// </example>
     public static class VectorTileGenerator
     {
         /// <summary>
@@ -65,8 +42,10 @@ namespace EGIS.Web.Controls
         /// <param name="tileX">Tile X coordinate</param>
         /// <param name="tileY">Tile Y coordinate</param>
         /// <param name="zoomLevel">Tile zoom level</param>
-        /// <param name="featureLayers">List of ShapeFile layers</param>
-        /// <param name="outputTileFeature">optional OutputTileFeatureDelegate which will be called with each record feature that will be added to the tile. This delegate is useful to exclude feaures at tile zoom levels</param>
+        /// <param name="featureLayers">List of Feature layers</param>
+        /// <param name="columnNames">The column Names will be included in the result mbtile.</param>
+        /// <param name="simplificationFactor"></param>
+        /// <param name="tileSize">Tile Size</param>
         /// <returns></returns>
         public static EGIS.Mapbox.Vector.Tile.Tile Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> featureLayers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
         {
@@ -84,14 +63,8 @@ namespace EGIS.Web.Controls
             return tile;
         }
 
-        [Flags]
-        enum OutCode { Inside = 0, Left = 1, Right = 2, Bottom = 4, Top = 8 };
-
-        [Flags]
-        enum ClipState { None = 0, Start = 1, End = 2 };
-
         #region private members
-
+       
         private static TileFeature GetVectorTileFeature(Feature feature, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor, RectangleShape tileBoundingBox)
         {
             TileFeature tileFeature = new TileFeature();
@@ -332,7 +305,7 @@ namespace EGIS.Web.Controls
 
         private static PointInt WorldPointToTilePoint(double pointX, double pointY, int zoomLevel, int tileSize, RectangleShape tileBoundingBox)
         {
-            double scale = ((double)tileSize / 40075016.4629396) * (1 << zoomLevel);
+            double scale = ((double)tileSize / MaxExtents.SphericalMercator.Width) * (1 << zoomLevel);
             PointInt result = new PointInt()
             {
                 X = (int)Math.Round((pointX - tileBoundingBox.LowerLeftPoint.X) * scale),
@@ -744,6 +717,11 @@ namespace EGIS.Web.Controls
             return accept;
         }
 
+        [Flags]
+        enum OutCode { Inside = 0, Left = 1, Right = 2, Bottom = 4, Top = 8 };
+
+        [Flags]
+        enum ClipState { None = 0, Start = 1, End = 2 };
         #endregion
     }
 }

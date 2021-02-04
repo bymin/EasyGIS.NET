@@ -59,7 +59,7 @@ namespace EGIS.Mapbox.Vector.Tile
             }
         }
 
-        public void GenerateNativeGeometry()
+        public void FillInNativeGeometry()
         {
             switch (this.Type)
             {
@@ -139,7 +139,7 @@ namespace EGIS.Mapbox.Vector.Tile
 
             foreach (List<PointInt> points in coordList)
             {
-                if (points.Count == 0) throw new Exception(string.Format("unexpected point count encoding point geometry. Count is {0}", points.Count));
+                if (points.Count == 0) throw new Exception("Encoding with no points. ");
 
                 uint commandInteger = (MoveTo & 0x7) | ((uint)points.Count << 3);
                 geometry.Add(commandInteger);
@@ -164,7 +164,7 @@ namespace EGIS.Mapbox.Vector.Tile
             PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
             foreach (List<PointInt> points in coordList)
             {
-                if (points.Count == 0) throw new Exception(string.Format("unexpected point count encoding line geometry. Count is {0}", points.Count));
+                if (points.Count == 0) throw new Exception("Encoding with no points. ");
 
                 //start of linestring
                 uint commandInteger = (MoveTo & 0x7) | (1 << 3);
@@ -202,7 +202,7 @@ namespace EGIS.Mapbox.Vector.Tile
             PointInt prevCoord = new PointInt() { X = 0, Y = 0 };
             foreach (List<PointInt> points in coordList)
             {
-                if (points.Count == 0) throw new Exception(string.Format("unexpected point count encoding polygon geometry. Count is {0}", points.Count));
+                if (points.Count == 0) throw new Exception("Encoding with no points. ");
 
                 //start of ring
                 uint commandInteger = (MoveTo & 0x7) | (1 << 3);
@@ -241,6 +241,19 @@ namespace EGIS.Mapbox.Vector.Tile
             }
 
             return geometry;
+        }
+
+        public static class ZigZag
+        {
+            public static Int32 Decode(Int32 n)
+            {
+                return (n >> 1) ^ (-(n & 1));
+            }
+
+            public static Int32 Encode(Int32 n)
+            {
+                return (n << 1) ^ (n >> 31);
+            }
         }
     }
 }
