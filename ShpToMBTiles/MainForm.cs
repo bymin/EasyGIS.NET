@@ -33,8 +33,8 @@ namespace ShpToMBTiles
                 this.txtInputShapeFile.Text = ofdShapeFile.FileName;
 
                 // load the column names
-                ShapeFileFeatureSource.BuildIndexFile(ofdShapeFile.FileName, BuildIndexMode.DoNotRebuild);
                 ShapeFileFeatureLayer shapefileFeatureLayer = new ShapeFileFeatureLayer(ofdShapeFile.FileName);
+                shapefileFeatureLayer.RequireIndex = false;
                 shapefileFeatureLayer.Open();
                 clbSelectedAttributes.Items.Clear();
                 var attributeNames = shapefileFeatureLayer.QueryTools.GetColumns().Select(f => f.ColumnName);
@@ -136,6 +136,8 @@ namespace ShpToMBTiles
             }
             OutputMessage("Processing Vector tiles..\n");
             DateTime tick = DateTime.Now;
+            ShapeFileFeatureSource.BuildIndexFile(this.txtInputShapeFile.Text, BuildIndexMode.DoNotRebuild);
+
             await VectorTileGenerator.Process(this.txtInputShapeFile.Text, this.txtMbtilesFilePathname.Text, cancellationTokenSource.Token, (int)(nudStartZoom.Value), (int)(nudEndZoom.Value), 512, attributes);
             OutputMessage("Processing Vector tiles complete. Elapsed time:" + DateTime.Now.Subtract(tick) + "\n");
         }

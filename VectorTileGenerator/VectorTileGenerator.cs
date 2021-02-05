@@ -71,6 +71,10 @@ namespace MBTilesGenerator
             var targetMap = new TilesTable(targetDBConnection);
             List<TilesEntry> entries = new List<TilesEntry>();
 
+            string targetFolder = Path.Combine(Path.GetDirectoryName(targetMbtiles), Path.GetFileNameWithoutExtension(targetMbtiles), "-tmp");
+            if (!Directory.Exists(targetFolder))
+                Directory.CreateDirectory(targetFolder);
+
             SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
             double currentScale = GetZoomLevelIndex(zoomLevelSet, minZoom);
             var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, tileSize, tileSize, GeographyUnit.Meter);
@@ -80,7 +84,7 @@ namespace MBTilesGenerator
             {
                 for (long tileX = tileRange.MinColumnIndex; tileX <= tileRange.MaxColumnIndex && !cancellationToken.IsCancellationRequested; ++tileX)
                 {
-                    Task task = ProcessTileRecursive(shapeFile, (int)tileY, (int)tileX, minZoom, maxZoom, cancellationToken, entries, targetMap, includedAttributes);
+                    Task task = ProcessTileRecursive(shapeFile, (int)tileY, (int)tileX, minZoom, maxZoom, cancellationToken, targetFolder, includedAttributes);
                     tasks.Add(task);
                 }
             }
@@ -90,30 +94,60 @@ namespace MBTilesGenerator
                 await task;
             }
 
-            targetMap.Insert(entries);
+            await Task.Run(() =>
+            {
+                long index = 0;
 
-            //if (tileSpeedCount >= 1000)
-            //{
-            //    DateTime tick = DateTime.Now;
-            //    double elapsedSeconds = tick.Subtract(tileSpeedStartTime).TotalSeconds;
-            //    //OnStatusMessage(new StatusMessageEventArgs(string.Format("total tiles processed:{0}, total data tiles:{1}, speed={2:0.00} tiles/second", processTileCount, totalDataTileCount, tileSpeedCount / elapsedSeconds)));
-            //}
+                string[] files = Directory.GetFiles(targetFolder, "*.mvt");
+                foreach (string file in files)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+                    string[] NameValues = fileName.Split('_');
+
+                    byte[] bytes = File.ReadAllBytes(file);
+                    //byte[] gzippedBytes = GZipData(bytes);
+
+
+                    TilesEntry newEntry = new TilesEntry();
+                    int zoomLevel = int.Parse(NameValues[0]);
+                    newEntry.ZoomLevel = zoomLevel;
+                    long row = long.Parse(NameValues[1]);
+                    row = (long)Math.Pow(2, zoomLevel) - row - 1;
+                    newEntry.TileRow = row;
+                    newEntry.TileColumn = long.Parse(NameValues[2]);
+                    newEntry.TileId = index++;
+                    newEntry.TileData = bytes;
+                    File.Delete(file);
+
+                    entries.Add(newEntry);
+
+                    if (index % 1000 == 0)
+                    {
+                        targetMap.Insert(entries);
+                        entries.Clear();
+                        continue;
+                    }
+                }
+                targetMap.Insert(entries);
+            });
+
+            targetDBConnection.Close();
         }
 
-        private async static Task ProcessTileRecursive(FeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, CancellationToken cancellationToken, List<TilesEntry> entries, TilesTable targetMap, List<string> includedAttributes = null)
+        private async static Task ProcessTileRecursive(FeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, CancellationToken cancellationToken, string targetFolder, List<string> includedAttributes = null)
         {
             Console.WriteLine($"Tile: {zoom}-{tileX}-{tileY}");
             if (cancellationToken.IsCancellationRequested) return;
-            bool result = await ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes, entries, targetMap);
+            bool result = await ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes, targetFolder);
 
             if (result && zoom < maxZoomLevel)
             {
                 List<Task> tasks = new List<Task>();
 
-                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
-                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
-                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
-                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, targetFolder, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, targetFolder, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, targetFolder, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, targetFolder, includedAttributes));
                 foreach (var task in tasks)
                 {
                     await task;
@@ -121,7 +155,7 @@ namespace MBTilesGenerator
             }
         }
 
-        private async static Task<bool> ProcessTile(FeatureLayer shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, List<TilesEntry> entries, TilesTable targetMap)
+        private async static Task<bool> ProcessTile(FeatureLayer shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, string targetFolder)
         {
             List<FeatureLayer> layers = new List<FeatureLayer>();
             FeatureLayer layer = (FeatureLayer)shapeFile.CloneDeep();
@@ -140,20 +174,7 @@ namespace MBTilesGenerator
                         vectorTile.Serialize(ms);
                         byte[] content = ms.ToArray();
                         byte[] gzippedContent = GZipData(content);
-
-                        TilesEntry newEntry = new TilesEntry();
-                        newEntry.ZoomLevel = zoom;
-                        newEntry.TileRow = (long)Math.Pow(2, zoom) - tileX - 1;
-                        newEntry.TileColumn = tileY;
-                        newEntry.TileData = gzippedContent;
-
-                        entries.Add(newEntry);
-
-                        if (entries.Count > 100)
-                        {
-                            targetMap.Insert(entries);
-                            entries.Clear();
-                        }
+                        File.WriteAllBytes(Path.Combine(targetFolder, $"{zoom}_{tileX}_{tileY}.mvt"), gzippedContent);
                     }
                 });
                 return true;
@@ -300,6 +321,8 @@ namespace MBTilesGenerator
             return tileFeature;
         }
 
+        static Dictionary<string, Feature> cache = new Dictionary<string, Feature>();
+
         private static TileLayer ProcessTile(FeatureLayer featureLayer, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, int simplificationFactor, int tileSize)
         {
             RectangleShape tileBoundingBox = GetTileSphericalMercatorBounds(tileX, tileY, zoom, tileSize);
@@ -327,8 +350,12 @@ namespace MBTilesGenerator
 
             while (IdsCountToExecute > 0)
             {
-                string[] featureIds = GetSubString(allFeatureIds, startIndex, Math.Min(1000, IdsCountToExecute));
-                Collection<Feature> features = featureLayer.FeatureSource.GetFeaturesByIds(featureIds, columnNames);
+                List<string> featureIds = GetSubString(allFeatureIds, startIndex, Math.Min(1000, IdsCountToExecute));
+                IdsCountToExecute = IdsCountToExecute - featureIds.Count;
+                startIndex = startIndex + featureIds.Count;
+                //Collection<Feature> features = featureLayer.FeatureSource.GetFeaturesByIds(featureIds, columnNames);
+                Collection<Feature> features = GetFeatures(featureLayer, featureIds, columnNames);
+
                 foreach (Feature feature in features)
                 {
                     TileFeature tileFeature = GetVectorTileFeature(feature, zoom, tileSize, clipBounds, simplificationFactor, tileBoundingBox);
@@ -337,11 +364,31 @@ namespace MBTilesGenerator
                         tileLayer.Features.Add(tileFeature);
                     }
                 }
-                IdsCountToExecute = IdsCountToExecute - featureIds.Length;
-                startIndex = startIndex + featureIds.Length;
+           
             }
             tileLayer.FillInTheInternalProperties();
             return tileLayer;
+        }
+
+        static Collection<Feature> GetFeatures(FeatureLayer featureLayer, List<string> featureIds, IEnumerable<string> columnNames)
+        {
+            List<Feature> result = new List<Feature>();
+            for (int i = featureIds.Count - 1; i >= 0; i--)
+            {
+                if (cache.ContainsKey(featureIds[i]))
+                {
+                    result.Add(cache[featureIds[i]]);
+                    featureIds.RemoveAt(i);
+                }
+            }
+
+            Collection<Feature> features = featureLayer.FeatureSource.GetFeaturesByIds(featureIds, columnNames);
+            foreach (Feature feature in features)
+            {
+                cache.Add(feature.Id, feature);
+            }
+            result.AddRange(features);
+            return new Collection<Feature>(result);
         }
 
         private static void ProcessLineShape(int zoom, int tileSize, RectangleInt clipBounds, TileFeature tileFeature, MultilineShape multiLineShape, int simplificationFactor, RectangleShape tileBoundingBox)
@@ -485,12 +532,12 @@ namespace MBTilesGenerator
             return result;
         }
 
-        private static string[] GetSubString(Collection<string> sourceString, int startIndex, int endIndex)
+        private static List<string> GetSubString(Collection<string> sourceString, int startIndex, int count)
         {
-            string[] result = new string[endIndex];
-            for (int i = 0; i < result.Length; i++)
+            List<string> result = new List<string>();
+            for (int i = 0; i < count; i++)
             {
-                result[i] = sourceString[startIndex + i];
+                result.Add(sourceString[startIndex + i]);
             }
             return result;
         }
