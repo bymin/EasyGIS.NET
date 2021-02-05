@@ -1,4 +1,4 @@
-﻿namespace EGIS.Mapbox.Vector.Tile
+﻿namespace MBTilesGenerator
 {
     [ProtoBuf.ProtoContract(Name = @"value")]
     public sealed class TileAttribute : ProtoBuf.IExtensible

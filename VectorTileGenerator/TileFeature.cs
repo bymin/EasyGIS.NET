@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace EGIS.Mapbox.Vector.Tile
+namespace MBTilesGenerator
 {
     [ProtoBuf.ProtoContract(Name = @"feature")]
     public sealed class TileFeature : ProtoBuf.IExtensible

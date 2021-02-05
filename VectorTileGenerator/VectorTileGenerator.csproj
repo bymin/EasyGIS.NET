@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;net462</TargetFrameworks>
-    <AssemblyName>EGIS.Mapbox.Vector.Tile</AssemblyName>
-    <RootNamespace>EGIS.Mapbox.Vector.Tile</RootNamespace>
+    <AssemblyName>VectorTileGenerator</AssemblyName>
+    <RootNamespace>VectorTileGenerator</RootNamespace>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>egis.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>

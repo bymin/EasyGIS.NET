@@ -1,4 +1,4 @@
-﻿namespace EGIS.Mapbox.Vector.Tile
+﻿namespace MBTilesGenerator
 {
     public struct PointInt
     {

@@ -1,41 +1,182 @@
-﻿#region Copyright and License
-
-/****************************************************************************
-**
-** Copyright (C) 2008 - 2020 Winston Fletcher.
-** All rights reserved.
-**
-** This file is part of the EGIS.ShapeFileLib class library of Easy GIS .NET.
-** 
-** Easy GIS .NET is free software: you can redistribute it and/or modify
-** it under the terms of the GNU Lesser General Public License version 3 as
-** published by the Free Software Foundation and appearing in the file
-** lgpl-license.txt included in the packaging of this file.
-**
-** Easy GIS .NET is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-** GNU General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License and
-** GNU Lesser General Public License along with Easy GIS .NET.
-** If not, see <http://www.gnu.org/licenses/>.
-**
-****************************************************************************/
-
-#endregion
-
-using EGIS.Mapbox.Vector.Tile;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using ThinkGeo.Core;
 
-namespace EGIS.Web.Controls
+namespace MBTilesGenerator
 {
     public static class VectorTileGenerator
     {
+        /// <summary>
+        /// Process given shapefile and generate 
+        /// </summary>
+        /// <param name="shapeFileName">full path to the input shapefile to process</param>        
+        /// <param name="includedAttributes">List of attributes to export. If null all attributes will be output</param>
+        public async static Task Process(string shapeFileName, string targetMbTiles, CancellationToken cancellationToken, int minZoom, int maxZoom, int tileSize, List<string> includedAttributes = null)
+        {
+            if (File.Exists(targetMbTiles))
+                File.Delete(targetMbTiles);
+
+            ShapeFileFeatureLayer shapeFile = new ShapeFileFeatureLayer(shapeFileName);
+            shapeFile.Open();
+            shapeFile.Name = Path.GetFileNameWithoutExtension(shapeFile.ShapePathFilename);
+
+            if (shapeFile.Projection != null)
+            {
+                shapeFile.FeatureSource.ProjectionConverter = new ProjectionConverter(shapeFile.Projection.ProjString, 3857);
+                shapeFile.FeatureSource.ProjectionConverter.Open();
+            }
+
+            await Process(shapeFile, targetMbTiles, cancellationToken, minZoom, maxZoom, tileSize, includedAttributes);
+        }
+
+        private async static Task Process(ShapeFileFeatureLayer shapeFile, string targetMbtiles, CancellationToken cancellationToken, int minZoom, int maxZoom, int tileSize, List<string> includedAttributes = null)
+        {
+            Console.Out.WriteLine("Processing tiles. StartZoom:{0}, EndZoom:{1}", minZoom, maxZoom);
+
+            RectangleShape shapeFileBounds = shapeFile.GetBoundingBox();
+            shapeFile.Close();
+
+            ThinkGeoMBTilesLayer.CreateDatabase(targetMbtiles);
+            var targetDBConnection = new SqliteConnection($"Data Source={targetMbtiles}");
+            targetDBConnection.Open();
+
+            // Meta Table
+            var targetMetadata = new MetadataTable(targetDBConnection);
+
+            PointShape centerPoint = shapeFileBounds.GetCenterPoint();
+            string center = $"{centerPoint.X},{centerPoint.Y},{maxZoom}";
+            string bounds = $"{shapeFileBounds.UpperLeftPoint.X},{shapeFileBounds.UpperLeftPoint.Y},{shapeFileBounds.LowerRightPoint.X},{shapeFileBounds.LowerRightPoint.Y}";
+
+            List<MetadataEntry> Entries = new List<MetadataEntry>();
+            Entries.Add(new MetadataEntry() { Name = "name", Value = "ThinkGeo World Streets" });
+            Entries.Add(new MetadataEntry() { Name = "format", Value = "pbf" });
+            Entries.Add(new MetadataEntry() { Name = "bounds", Value = bounds }); //"-96.85310250357627,33.10809235525063,-96.85260897712004,33.107616047247156"
+            Entries.Add(new MetadataEntry() { Name = "center", Value = center }); // "-96.85285574034816,33.1078542012489,14"
+            Entries.Add(new MetadataEntry() { Name = "minzoom", Value = $"{minZoom}" });
+            Entries.Add(new MetadataEntry() { Name = "maxzoom", Value = $"{maxZoom}" });
+            Entries.Add(new MetadataEntry() { Name = "attribution", Value = "Copyright @2020 ThinkGeo LLC.All rights reserved." });
+            Entries.Add(new MetadataEntry() { Name = "description", Value = "ThinkGeo World Street Vector Tile Data in EPSG:3857" });
+            Entries.Add(new MetadataEntry() { Name = "version", Value = "2.0" });
+            Entries.Add(new MetadataEntry() { Name = "json", Value = "" });
+            targetMetadata.Insert(Entries);
+
+            // Tile Table
+            var targetMap = new TilesTable(targetDBConnection);
+            List<TilesEntry> entries = new List<TilesEntry>();
+
+            SphericalMercatorZoomLevelSet zoomLevelSet = new SphericalMercatorZoomLevelSet();
+            double currentScale = GetZoomLevelIndex(zoomLevelSet, minZoom);
+            var tileMatrix = TileMatrix.GetDefaultMatrix(currentScale, tileSize, tileSize, GeographyUnit.Meter);
+            var tileRange = tileMatrix.GetIntersectingRowColumnRange(shapeFileBounds);
+            List<Task> tasks = new List<Task>();
+            for (long tileY = tileRange.MinRowIndex; tileY <= tileRange.MaxRowIndex && !cancellationToken.IsCancellationRequested; ++tileY)
+            {
+                for (long tileX = tileRange.MinColumnIndex; tileX <= tileRange.MaxColumnIndex && !cancellationToken.IsCancellationRequested; ++tileX)
+                {
+                    Task task = ProcessTileRecursive(shapeFile, (int)tileY, (int)tileX, minZoom, maxZoom, cancellationToken, entries, targetMap, includedAttributes);
+                    tasks.Add(task);
+                }
+            }
+
+            foreach (var task in tasks)
+            {
+                await task;
+            }
+
+            targetMap.Insert(entries);
+
+            //if (tileSpeedCount >= 1000)
+            //{
+            //    DateTime tick = DateTime.Now;
+            //    double elapsedSeconds = tick.Subtract(tileSpeedStartTime).TotalSeconds;
+            //    //OnStatusMessage(new StatusMessageEventArgs(string.Format("total tiles processed:{0}, total data tiles:{1}, speed={2:0.00} tiles/second", processTileCount, totalDataTileCount, tileSpeedCount / elapsedSeconds)));
+            //}
+        }
+
+        private async static Task ProcessTileRecursive(FeatureLayer shapeFile, int tileX, int tileY, int zoom, int maxZoomLevel, CancellationToken cancellationToken, List<TilesEntry> entries, TilesTable targetMap, List<string> includedAttributes = null)
+        {
+            Console.WriteLine($"Tile: {zoom}-{tileX}-{tileY}");
+            if (cancellationToken.IsCancellationRequested) return;
+            bool result = await ProcessTile(shapeFile, tileX, tileY, zoom, includedAttributes, entries, targetMap);
+
+            if (result && zoom < maxZoomLevel)
+            {
+                List<Task> tasks = new List<Task>();
+
+                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, tileY << 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, tileX << 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
+                tasks.Add(ProcessTileRecursive(shapeFile, (tileX << 1) + 1, (tileY << 1) + 1, zoom + 1, maxZoomLevel, cancellationToken, entries, targetMap, includedAttributes));
+                foreach (var task in tasks)
+                {
+                    await task;
+                }
+            }
+        }
+
+        private async static Task<bool> ProcessTile(FeatureLayer shapeFile, int tileX, int tileY, int zoom, IEnumerable<string> columnNames, List<TilesEntry> entries, TilesTable targetMap)
+        {
+            List<FeatureLayer> layers = new List<FeatureLayer>();
+            FeatureLayer layer = (FeatureLayer)shapeFile.CloneDeep();
+            layers.Add(layer);
+            Tile vectorTile = new Tile();
+            await Task.Run(() =>
+            {
+                vectorTile = Generate(tileX, tileY, zoom, layers, columnNames, 512, 1);
+            });
+            if (vectorTile != null && vectorTile.Layers.Count > 0)
+            {
+                await Task.Run(() =>
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        vectorTile.Serialize(ms);
+                        byte[] content = ms.ToArray();
+                        byte[] gzippedContent = GZipData(content);
+
+                        TilesEntry newEntry = new TilesEntry();
+                        newEntry.ZoomLevel = zoom;
+                        newEntry.TileRow = (long)Math.Pow(2, zoom) - tileX - 1;
+                        newEntry.TileColumn = tileY;
+                        newEntry.TileData = gzippedContent;
+
+                        entries.Add(newEntry);
+
+                        if (entries.Count > 100)
+                        {
+                            targetMap.Insert(entries);
+                            entries.Clear();
+                        }
+                    }
+                });
+                return true;
+            }
+            return false;
+        }
+
+        private static byte[] GZipData(byte[] bytes)
+        {
+            byte[] zippedBytes;
+            using (MemoryStream zippedMemoryStream = new MemoryStream())
+            {
+                using (GZipStream zippedStream = new GZipStream(zippedMemoryStream, CompressionMode.Compress))
+                {
+                    zippedStream.Write(bytes, 0, bytes.Length);
+                    zippedStream.Close();
+                    zippedBytes = zippedMemoryStream.ToArray();
+
+                }
+            }
+            return zippedBytes;
+        }
+
         /// <summary>
         /// Generates a Vector Tile from ShapeFile layers
         /// </summary>
@@ -47,9 +188,9 @@ namespace EGIS.Web.Controls
         /// <param name="simplificationFactor"></param>
         /// <param name="tileSize">Tile Size</param>
         /// <returns></returns>
-        public static EGIS.Mapbox.Vector.Tile.Tile Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> featureLayers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
+        private static Tile Generate(int tileX, int tileY, int zoomLevel, List<FeatureLayer> featureLayers, IEnumerable<string> columnNames, int tileSize, int simplificationFactor)
         {
-            EGIS.Mapbox.Vector.Tile.Tile tile = new Mapbox.Vector.Tile.Tile();
+            Tile tile = new Tile();
 
             foreach (FeatureLayer featureLayer in featureLayers)
             {
@@ -63,8 +204,37 @@ namespace EGIS.Web.Controls
             return tile;
         }
 
+        private static double GetZoomLevelIndex(ZoomLevelSet zoomLevelSet, int zoomLevel)
+        {
+            switch (zoomLevel)
+            {
+                case 0: return zoomLevelSet.ZoomLevel01.Scale;
+                case 1: return zoomLevelSet.ZoomLevel02.Scale;
+                case 2: return zoomLevelSet.ZoomLevel03.Scale;
+                case 3: return zoomLevelSet.ZoomLevel04.Scale;
+                case 4: return zoomLevelSet.ZoomLevel05.Scale;
+                case 5: return zoomLevelSet.ZoomLevel06.Scale;
+                case 6: return zoomLevelSet.ZoomLevel07.Scale;
+                case 7: return zoomLevelSet.ZoomLevel08.Scale;
+                case 8: return zoomLevelSet.ZoomLevel09.Scale;
+                case 9: return zoomLevelSet.ZoomLevel10.Scale;
+                case 10: return zoomLevelSet.ZoomLevel11.Scale;
+                case 11: return zoomLevelSet.ZoomLevel12.Scale;
+                case 12: return zoomLevelSet.ZoomLevel13.Scale;
+                case 13: return zoomLevelSet.ZoomLevel14.Scale;
+                case 14: return zoomLevelSet.ZoomLevel15.Scale;
+                case 15: return zoomLevelSet.ZoomLevel16.Scale;
+                case 16: return zoomLevelSet.ZoomLevel17.Scale;
+                case 17: return zoomLevelSet.ZoomLevel18.Scale;
+                case 18: return zoomLevelSet.ZoomLevel19.Scale;
+                case 19: return zoomLevelSet.ZoomLevel20.Scale;
+                default:
+                    return -1;
+            }
+        }
+
         #region private members
-       
+
         private static TileFeature GetVectorTileFeature(Feature feature, int zoom, int tileSize, RectangleInt clipBounds, int simplificationFactor, RectangleShape tileBoundingBox)
         {
             TileFeature tileFeature = new TileFeature();
@@ -72,13 +242,13 @@ namespace EGIS.Web.Controls
             {
                 case WellKnownType.Line:
                 case WellKnownType.Multiline:
-                    tileFeature.Type = Mapbox.Vector.Tile.GeometryType.LineString;
+                    tileFeature.Type = GeometryType.LineString;
                     MultilineShape multiLineShape = new MultilineShape(feature.GetWellKnownBinary());
                     ProcessLineShape(zoom, tileSize, clipBounds, tileFeature, multiLineShape, simplificationFactor, tileBoundingBox);
                     break;
                 case WellKnownType.Polygon:
                 case WellKnownType.Multipolygon:
-                    tileFeature.Type = Mapbox.Vector.Tile.GeometryType.Polygon;
+                    tileFeature.Type = GeometryType.Polygon;
                     MultipolygonShape multiPolygonShape = new MultipolygonShape(feature.GetWellKnownBinary());
                     foreach (PolygonShape polygonShape in multiPolygonShape.Polygons)
                     {
@@ -91,7 +261,7 @@ namespace EGIS.Web.Controls
                     break;
                 case WellKnownType.Point:
                 case WellKnownType.Multipoint:
-                    tileFeature.Type = Mapbox.Vector.Tile.GeometryType.Point;
+                    tileFeature.Type = GeometryType.Point;
                     List<PointInt> coordinates = new List<PointInt>();
 
                     MultipointShape multiPointShape = new MultipointShape();
@@ -117,7 +287,7 @@ namespace EGIS.Web.Controls
                     }
                     break;
                 default:
-                    tileFeature.Type = Mapbox.Vector.Tile.GeometryType.Unknown;
+                    tileFeature.Type = GeometryType.Unknown;
                     break;
             }
 

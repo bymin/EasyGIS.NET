@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{F5FA7BC7-73E5-4F49-9D68-74C02A1599BF}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>ShpToMapboxVT</RootNamespace>
-    <AssemblyName>ShpToMapboxVT</AssemblyName>
+    <RootNamespace>ShpToMBTiles</RootNamespace>
+    <AssemblyName>ShpToMBTiles</AssemblyName>
     <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -116,11 +116,6 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TileGenerator.cs" />
-    <Compile Include="MetadataTable.cs" />
-    <Compile Include="TilesEntry.cs" />
-    <Compile Include="MetadataEntry.cs" />
-    <Compile Include="TilesTable.cs" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -152,12 +147,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\egis.mapbox.vector.tile\EGIS.Mapbox.Vector.Tile.csproj">
-      <Project>{7a7cc2d1-b83f-49c7-afa6-076fb85a3958}</Project>
-      <Name>EGIS.Mapbox.Vector.Tile</Name>
+    <ProjectReference Include="..\VectorTileGenerator\VectorTileGenerator.csproj">
+      <Project>{3d938df3-e95c-46d8-9e4c-efacd4a4bbd7}</Project>
+      <Name>VectorTileGenerator</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="C:\Users\BenBai\Documents\EasyGIS.NET\packages\SQLitePCLRaw.lib.e_sqlite3.2.0.2\build\net461\SQLitePCLRaw.lib.e_sqlite3.targets" Condition="Exists('C:\Users\BenBai\Documents\EasyGIS.NET\packages\SQLitePCLRaw.lib.e_sqlite3.2.0.2\build\net461\SQLitePCLRaw.lib.e_sqlite3.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

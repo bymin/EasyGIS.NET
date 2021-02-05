@@ -1,5 +1,5 @@
 ﻿
-namespace EGIS.Mapbox.Vector.Tile
+namespace MBTilesGenerator
 {
     [ProtoBuf.ProtoContract(Name = @"GeomType")]
     public enum GeometryType

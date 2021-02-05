@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 
-namespace ShpToMapboxVT
+namespace MBTilesGenerator
 {
     public class TilesTable
     {
@@ -15,7 +15,6 @@ namespace ShpToMapboxVT
         public static readonly string ZoomLevelColumnName = "zoom_level";
         public static readonly string TileColColumnName = "tile_column";
         public static readonly string TileRowColumnName = "tile_row";
-        public static readonly string TileIdColumnName = "Id";
         public static readonly string TileDataColumnName = "tile_data";
 
         public TilesTable(SqliteConnection connection)
@@ -30,13 +29,12 @@ namespace ShpToMapboxVT
         {
             bool result = true;
 
-            string insertSqlStatement = $"INSERT INTO {TableName} ({ZoomLevelColumnName},{TileColColumnName},{TileRowColumnName},{TileIdColumnName},{TileDataColumnName}) VALUES (@{ZoomLevelColumnName}, @{TileColColumnName}, @{TileRowColumnName}, @{TileIdColumnName}, @{TileDataColumnName});";
+            string insertSqlStatement = $"INSERT INTO {TableName} ({ZoomLevelColumnName},{TileColColumnName},{TileRowColumnName},{TileDataColumnName}) VALUES (@{ZoomLevelColumnName}, @{TileColColumnName}, @{TileRowColumnName}, @{TileDataColumnName});";
 
             SqliteCommand command = new SqliteCommand(insertSqlStatement, connection);
             command.Parameters.Add($"@{ZoomLevelColumnName}", SqliteType.Integer);
             command.Parameters.Add($"@{TileColColumnName}", SqliteType.Integer);
             command.Parameters.Add($"@{TileRowColumnName}", SqliteType.Integer);
-            command.Parameters.Add($"@{TileIdColumnName}", SqliteType.Text);
             command.Parameters.Add($"@{TileDataColumnName}", SqliteType.Blob);
             command.Prepare();
             IDbTransaction dbTransaction = connection.BeginTransaction();
@@ -48,7 +46,6 @@ namespace ShpToMapboxVT
                     command.Parameters[$"@{ZoomLevelColumnName}"].Value = ParseValue(entry.ZoomLevel);
                     command.Parameters[$"@{TileColColumnName}"].Value = ParseValue(entry.TileColumn);
                     command.Parameters[$"@{TileRowColumnName}"].Value = ParseValue(entry.TileRow);
-                    command.Parameters[$"@{TileIdColumnName}"].Value = ParseValue(entry.TileId);
                     command.Parameters[$"@{TileDataColumnName}"].Value = entry.TileData;
                     command.ExecuteNonQuery();
                 }

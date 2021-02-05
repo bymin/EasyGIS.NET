@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 
-namespace ShpToMapboxVT
+namespace MBTilesGenerator
 {
     public class MetadataTable
     {

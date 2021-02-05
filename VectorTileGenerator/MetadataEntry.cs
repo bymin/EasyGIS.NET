@@ -1,4 +1,4 @@
-﻿namespace ShpToMapboxVT
+﻿namespace MBTilesGenerator
 {
     public class MetadataEntry
     {

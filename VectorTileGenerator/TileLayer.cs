@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace EGIS.Mapbox.Vector.Tile
+namespace MBTilesGenerator
 {
     [ProtoBuf.ProtoContract(Name = @"layer")]
     public sealed class TileLayer : ProtoBuf.IExtensible

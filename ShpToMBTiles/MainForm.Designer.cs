@@ -1,4 +1,4 @@
-﻿namespace ShpToMapboxVT
+﻿namespace ShpToMBTiles
 {
     partial class MainForm
     {
