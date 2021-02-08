@@ -97,10 +97,10 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="ThinkGeo.Core, Version=12.0.0.0, Culture=neutral, PublicKeyToken=0828af5241fb4207, processorArchitecture=MSIL">
-      <HintPath>..\packages\ThinkGeo.Core.13.0.0-beta215\lib\net462\ThinkGeo.Core.dll</HintPath>
+      <HintPath>..\packages\ThinkGeo.Core.13.0.0-beta220\lib\net462\ThinkGeo.Core.dll</HintPath>
     </Reference>
     <Reference Include="ThinkGeo.UI.WinForms, Version=12.0.0.0, Culture=neutral, PublicKeyToken=0828af5241fb4207, processorArchitecture=MSIL">
-      <HintPath>..\packages\ThinkGeo.UI.WinForms.13.0.0-beta162\lib\net462\ThinkGeo.UI.WinForms.dll</HintPath>
+      <HintPath>..\packages\ThinkGeo.UI.WinForms.13.0.0-beta167\lib\net462\ThinkGeo.UI.WinForms.dll</HintPath>
     </Reference>
     <Reference Include="WindowsFormsIntegration" />
     <Reference Include="WriteableBitmapEx.Wpf, Version=1.6.2.0, Culture=neutral, processorArchitecture=MSIL">
@@ -162,10 +162,10 @@
     <Error Condition="!Exists('C:\Users\BenBai\Documents\EasyGIS.NET\packages\ThinkGeo.Core.12.3.2\build\netstandard2.0\ThinkGeo.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', 'C:\Users\BenBai\Documents\EasyGIS.NET\packages\ThinkGeo.Core.12.3.2\build\netstandard2.0\ThinkGeo.Core.targets'))" />
     <Error Condition="!Exists('..\packages\SQLitePCLRaw.lib.e_sqlite3.2.0.4\build\net461\SQLitePCLRaw.lib.e_sqlite3.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCLRaw.lib.e_sqlite3.2.0.4\build\net461\SQLitePCLRaw.lib.e_sqlite3.targets'))" />
     <Error Condition="!Exists('..\packages\ThinkGeo.Dependency.SkiaSharp.13.0.1\build\net462\ThinkGeo.Dependency.SkiaSharp.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ThinkGeo.Dependency.SkiaSharp.13.0.1\build\net462\ThinkGeo.Dependency.SkiaSharp.targets'))" />
-    <Error Condition="!Exists('..\packages\ThinkGeo.Core.13.0.0-beta215\build\net462\ThinkGeo.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ThinkGeo.Core.13.0.0-beta215\build\net462\ThinkGeo.Core.targets'))" />
+    <Error Condition="!Exists('..\packages\ThinkGeo.Core.13.0.0-beta220\build\net462\ThinkGeo.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ThinkGeo.Core.13.0.0-beta220\build\net462\ThinkGeo.Core.targets'))" />
   </Target>
   <Import Project="C:\Users\BenBai\Documents\EasyGIS.NET\packages\ThinkGeo.Core.12.3.2\build\netstandard2.0\ThinkGeo.Core.targets" Condition="Exists('C:\Users\BenBai\Documents\EasyGIS.NET\packages\ThinkGeo.Core.12.3.2\build\netstandard2.0\ThinkGeo.Core.targets')" />
   <Import Project="..\packages\SQLitePCLRaw.lib.e_sqlite3.2.0.4\build\net461\SQLitePCLRaw.lib.e_sqlite3.targets" Condition="Exists('..\packages\SQLitePCLRaw.lib.e_sqlite3.2.0.4\build\net461\SQLitePCLRaw.lib.e_sqlite3.targets')" />
   <Import Project="..\packages\ThinkGeo.Dependency.SkiaSharp.13.0.1\build\net462\ThinkGeo.Dependency.SkiaSharp.targets" Condition="Exists('..\packages\ThinkGeo.Dependency.SkiaSharp.13.0.1\build\net462\ThinkGeo.Dependency.SkiaSharp.targets')" />
-  <Import Project="..\packages\ThinkGeo.Core.13.0.0-beta215\build\net462\ThinkGeo.Core.targets" Condition="Exists('..\packages\ThinkGeo.Core.13.0.0-beta215\build\net462\ThinkGeo.Core.targets')" />
+  <Import Project="..\packages\ThinkGeo.Core.13.0.0-beta220\build\net462\ThinkGeo.Core.targets" Condition="Exists('..\packages\ThinkGeo.Core.13.0.0-beta220\build\net462\ThinkGeo.Core.targets')" />
 </Project>

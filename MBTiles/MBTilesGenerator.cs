@@ -17,6 +17,51 @@ namespace MBTiles
         private static object lockObject = new object();
         private static int cacheFeatureCount = 10000;
 
+        public static Tile GetFirstTile(string mbtilesPath, int zoom)
+        {
+            var connection = new SqliteConnection($"Data Source={mbtilesPath}");
+            connection.Open();
+
+            string sqlStatement = $"SELECT * FROM tiles where zoom_level = {zoom} order by Id asc limit 1";
+            SqliteCommand command = new SqliteCommand(sqlStatement, connection);
+            SqliteDataReader dataReader = command.ExecuteReader();
+
+            byte[] data = null;
+            while (dataReader.Read())
+            {
+                data = (byte[])dataReader["tile_data"];
+                break;
+            }
+
+            if (data == null)
+                return null;
+
+            byte[] unzippedData = UnzipGzippedData(data);
+            MemoryStream ms = new MemoryStream(unzippedData);
+
+            Tile tile = Tile.Deserialize(ms);
+            return tile;
+        }
+
+        public static byte[] UnzipGzippedData(byte[] bytes)
+        {
+            byte[] unzippedBytes;
+
+            using (MemoryStream gzippedStream = new MemoryStream(bytes))
+            {
+                using (GZipStream unzippedStream = new GZipStream(gzippedStream, CompressionMode.Decompress))
+                {
+                    using (MemoryStream returnedStream = new MemoryStream())
+                    {
+                        unzippedStream.CopyTo(returnedStream);
+                        unzippedBytes = returnedStream.ToArray();
+                    }
+                }
+            }
+
+            return unzippedBytes;
+        }
+
         public async static Task Process(string shapeFileName, string targetMbTiles, CancellationToken cancellationToken, int minZoom, int maxZoom, int tileSize, List<string> includedAttributes = null)
         {
             if (File.Exists(targetMbTiles))
@@ -238,6 +283,52 @@ namespace MBTiles
                 default:
                     return -1;
             }
+        }
+
+        public static int GetZoom(ZoomLevelSet zoomLevelSet, double scale )
+        {
+            int zoom = -1;
+            if (scale >= zoomLevelSet.ZoomLevel01.Scale)
+                zoom = 0;
+            else if (scale >= zoomLevelSet.ZoomLevel02.Scale)
+                zoom = 1;
+            else if (scale >= zoomLevelSet.ZoomLevel03.Scale)
+                zoom = 2;
+            else if (scale >= zoomLevelSet.ZoomLevel04.Scale)
+                zoom = 3;
+            else if (scale >= zoomLevelSet.ZoomLevel05.Scale)
+                zoom = 4;
+            else if (scale >= zoomLevelSet.ZoomLevel06.Scale)
+                zoom = 5;
+            else if (scale >= zoomLevelSet.ZoomLevel07.Scale)
+                zoom = 6;
+            else if (scale >= zoomLevelSet.ZoomLevel08.Scale)
+                zoom = 7;
+            else if (scale >= zoomLevelSet.ZoomLevel09.Scale)
+                zoom = 8;
+            else if (scale >= zoomLevelSet.ZoomLevel10.Scale)
+                zoom = 9;
+            else if (scale >= zoomLevelSet.ZoomLevel11.Scale)
+                zoom = 10;
+            else if (scale >= zoomLevelSet.ZoomLevel12.Scale)
+                zoom = 11;
+            else if (scale >= zoomLevelSet.ZoomLevel13.Scale)
+                zoom = 12;
+            else if (scale >= zoomLevelSet.ZoomLevel14.Scale)
+                zoom = 13;
+            else if (scale >= zoomLevelSet.ZoomLevel15.Scale)
+                zoom = 14;
+            else if (scale >= zoomLevelSet.ZoomLevel16.Scale)
+                zoom = 15;
+            else if (scale >= zoomLevelSet.ZoomLevel17.Scale)
+                zoom = 16;
+            else if (scale >= zoomLevelSet.ZoomLevel18.Scale)
+                zoom = 17;
+            else if (scale >= zoomLevelSet.ZoomLevel19.Scale)
+                zoom = 18;
+            else
+                zoom = 19;
+            return zoom;
         }
 
         private static TileFeature GetVectorTileFeature(Feature feature, int zoom, int tileSize, RectangleInt tileScreenBoundingBox, int simplificationFactor, RectangleShape tileBoundingBox)

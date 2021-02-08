@@ -58,13 +58,20 @@
             this.ofdShapeFile = new System.Windows.Forms.OpenFileDialog();
             this.sfdMbtiles = new System.Windows.Forms.SaveFileDialog();
             this.mapView1 = new ThinkGeo.UI.WinForms.MapView();
-            this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.ckbDisplayMbtiles = new System.Windows.Forms.CheckBox();
             this.ckbDisplayShapeFile = new System.Windows.Forms.CheckBox();
+            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.txtMBTileInfo = new System.Windows.Forms.TextBox();
+            this.btnReloadJson = new System.Windows.Forms.Button();
+            this.btnReload = new System.Windows.Forms.Button();
+            this.tbxJson = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.nudStartZoom)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudEndZoom)).BeginInit();
             this.groupBox1.SuspendLayout();
-            this.groupBox2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
+            this.splitContainer1.Panel1.SuspendLayout();
+            this.splitContainer1.Panel2.SuspendLayout();
+            this.splitContainer1.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -80,7 +87,7 @@
             // 
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1204, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1193, 24);
             this.menuStrip1.TabIndex = 1;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -192,7 +199,6 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.Controls.Add(this.btnDisplay);
             this.groupBox1.Controls.Add(this.rtbOutput);
             this.groupBox1.Controls.Add(this.btnSelectNoAttributes);
@@ -210,7 +216,7 @@
             this.groupBox1.Controls.Add(this.txtMbtilesFilePathname);
             this.groupBox1.Controls.Add(this.nudStartZoom);
             this.groupBox1.Controls.Add(this.btnBrowseOutputDirectory);
-            this.groupBox1.Location = new System.Drawing.Point(12, 12);
+            this.groupBox1.Location = new System.Drawing.Point(12, 11);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(1180, 204);
             this.groupBox1.TabIndex = 12;
@@ -286,7 +292,7 @@
             this.mapView1.BackColor = System.Drawing.Color.White;
             this.mapView1.CurrentScale = 0D;
             this.mapView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mapView1.Location = new System.Drawing.Point(3, 16);
+            this.mapView1.Location = new System.Drawing.Point(0, 0);
             this.mapView1.MapFocusMode = ThinkGeo.Core.MapFocusMode.Default;
             this.mapView1.MapResizeMode = ThinkGeo.Core.MapResizeMode.PreserveScale;
             this.mapView1.MaximumScale = 1.7976931348623157E+308D;
@@ -294,32 +300,19 @@
             this.mapView1.Name = "mapView1";
             this.mapView1.RestrictExtent = null;
             this.mapView1.RotatedAngle = 0F;
-            this.mapView1.Size = new System.Drawing.Size(1186, 499);
+            this.mapView1.Size = new System.Drawing.Size(962, 733);
             this.mapView1.TabIndex = 13;
             this.mapView1.Text = "mapView1";
-            // 
-            // groupBox2
-            // 
-            this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBox2.Controls.Add(this.ckbDisplayMbtiles);
-            this.groupBox2.Controls.Add(this.ckbDisplayShapeFile);
-            this.groupBox2.Controls.Add(this.mapView1);
-            this.groupBox2.Location = new System.Drawing.Point(12, 223);
-            this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(1192, 518);
-            this.groupBox2.TabIndex = 14;
-            this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "groupBox2";
+            this.mapView1.CurrentScaleChanged += new System.EventHandler<ThinkGeo.Core.CurrentScaleChangedMapViewEventArgs>(this.mapView1_CurrentScaleChanged);
             // 
             // ckbDisplayMbtiles
             // 
+            this.ckbDisplayMbtiles.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.ckbDisplayMbtiles.AutoSize = true;
             this.ckbDisplayMbtiles.Checked = true;
             this.ckbDisplayMbtiles.CheckState = System.Windows.Forms.CheckState.Checked;
             this.ckbDisplayMbtiles.Enabled = false;
-            this.ckbDisplayMbtiles.Location = new System.Drawing.Point(1008, 59);
+            this.ckbDisplayMbtiles.Location = new System.Drawing.Point(846, 37);
             this.ckbDisplayMbtiles.Name = "ckbDisplayMbtiles";
             this.ckbDisplayMbtiles.Size = new System.Drawing.Size(96, 17);
             this.ckbDisplayMbtiles.TabIndex = 15;
@@ -329,11 +322,12 @@
             // 
             // ckbDisplayShapeFile
             // 
+            this.ckbDisplayShapeFile.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.ckbDisplayShapeFile.AutoSize = true;
             this.ckbDisplayShapeFile.Checked = true;
             this.ckbDisplayShapeFile.CheckState = System.Windows.Forms.CheckState.Checked;
             this.ckbDisplayShapeFile.Enabled = false;
-            this.ckbDisplayShapeFile.Location = new System.Drawing.Point(1008, 36);
+            this.ckbDisplayShapeFile.Location = new System.Drawing.Point(846, 14);
             this.ckbDisplayShapeFile.Name = "ckbDisplayShapeFile";
             this.ckbDisplayShapeFile.Size = new System.Drawing.Size(113, 17);
             this.ckbDisplayShapeFile.TabIndex = 14;
@@ -341,12 +335,83 @@
             this.ckbDisplayShapeFile.UseVisualStyleBackColor = true;
             this.ckbDisplayShapeFile.CheckedChanged += new System.EventHandler(this.ckbDisplayMbtiles_CheckedChanged);
             // 
+            // splitContainer1
+            // 
+            this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.splitContainer1.Location = new System.Drawing.Point(12, 222);
+            this.splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            this.splitContainer1.Panel1.Controls.Add(this.ckbDisplayMbtiles);
+            this.splitContainer1.Panel1.Controls.Add(this.ckbDisplayShapeFile);
+            this.splitContainer1.Panel1.Controls.Add(this.mapView1);
+            // 
+            // splitContainer1.Panel2
+            // 
+            this.splitContainer1.Panel2.Controls.Add(this.txtMBTileInfo);
+            this.splitContainer1.Panel2.Controls.Add(this.btnReloadJson);
+            this.splitContainer1.Panel2.Controls.Add(this.btnReload);
+            this.splitContainer1.Panel2.Controls.Add(this.tbxJson);
+            this.splitContainer1.Size = new System.Drawing.Size(1181, 733);
+            this.splitContainer1.SplitterDistance = 962;
+            this.splitContainer1.TabIndex = 16;
+            // 
+            // txtMBTileInfo
+            // 
+            this.txtMBTileInfo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtMBTileInfo.Location = new System.Drawing.Point(5, 3);
+            this.txtMBTileInfo.Multiline = true;
+            this.txtMBTileInfo.Name = "txtMBTileInfo";
+            this.txtMBTileInfo.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtMBTileInfo.Size = new System.Drawing.Size(209, 219);
+            this.txtMBTileInfo.TabIndex = 3;
+            this.txtMBTileInfo.WordWrap = false;
+            // 
+            // btnReloadJson
+            // 
+            this.btnReloadJson.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnReloadJson.Location = new System.Drawing.Point(125, 692);
+            this.btnReloadJson.Name = "btnReloadJson";
+            this.btnReloadJson.Size = new System.Drawing.Size(87, 23);
+            this.btnReloadJson.TabIndex = 2;
+            this.btnReloadJson.Text = "Reload JSON";
+            this.btnReloadJson.UseVisualStyleBackColor = true;
+            this.btnReloadJson.Click += new System.EventHandler(this.btnReloadJson_Click);
+            // 
+            // btnReload
+            // 
+            this.btnReload.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnReload.Location = new System.Drawing.Point(44, 692);
+            this.btnReload.Name = "btnReload";
+            this.btnReload.Size = new System.Drawing.Size(75, 23);
+            this.btnReload.TabIndex = 1;
+            this.btnReload.Text = "Reload Map";
+            this.btnReload.UseVisualStyleBackColor = true;
+            this.btnReload.Click += new System.EventHandler(this.btnReload_Click);
+            // 
+            // tbxJson
+            // 
+            this.tbxJson.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tbxJson.Location = new System.Drawing.Point(6, 228);
+            this.tbxJson.Multiline = true;
+            this.tbxJson.Name = "tbxJson";
+            this.tbxJson.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.tbxJson.Size = new System.Drawing.Size(209, 458);
+            this.tbxJson.TabIndex = 0;
+            this.tbxJson.WordWrap = false;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1204, 753);
-            this.Controls.Add(this.groupBox2);
+            this.ClientSize = new System.Drawing.Size(1193, 952);
+            this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.menuStrip1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -358,8 +423,12 @@
             ((System.ComponentModel.ISupportInitialize)(this.nudEndZoom)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
-            this.groupBox2.ResumeLayout(false);
-            this.groupBox2.PerformLayout();
+            this.splitContainer1.Panel1.ResumeLayout(false);
+            this.splitContainer1.Panel1.PerformLayout();
+            this.splitContainer1.Panel2.ResumeLayout(false);
+            this.splitContainer1.Panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
+            this.splitContainer1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -388,10 +457,14 @@
         private System.Windows.Forms.Button btnSelectAllAttributes;
         private System.Windows.Forms.SaveFileDialog sfdMbtiles;
         private ThinkGeo.UI.WinForms.MapView mapView1;
-        private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.Button btnDisplay;
         private System.Windows.Forms.CheckBox ckbDisplayMbtiles;
         private System.Windows.Forms.CheckBox ckbDisplayShapeFile;
+        private System.Windows.Forms.SplitContainer splitContainer1;
+        private System.Windows.Forms.Button btnReloadJson;
+        private System.Windows.Forms.Button btnReload;
+        private System.Windows.Forms.TextBox tbxJson;
+        private System.Windows.Forms.TextBox txtMBTileInfo;
     }
 }
 

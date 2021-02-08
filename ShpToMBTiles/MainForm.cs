@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ThinkGeo.Core;
@@ -175,6 +177,10 @@ namespace ShpToMBTiles
 
             ckbDisplayShapeFile.Enabled = true;
             ckbDisplayMbtiles.Enabled = true;
+
+            string jsonFile = File.ReadAllText(@".\SimpleRenderer.json");
+            tbxJson.Text = jsonFile;
+
         }
 
         private void ckbDisplayMbtiles_CheckedChanged(object sender, EventArgs e)
@@ -190,6 +196,46 @@ namespace ShpToMBTiles
 
             LayerOverlay mbtilesOverlay = new LayerOverlay();
             mapView1.Overlays.Add("mbtilesOverlay", mbtilesOverlay);
+        }
+
+        private void btnReload_Click(object sender, EventArgs e)
+        {
+            File.WriteAllText("tmpRenderer.json", tbxJson.Text);
+
+            ThinkGeoMBTilesLayer mbTileslayer = (ThinkGeoMBTilesLayer)((LayerOverlay)mapView1.Overlays["mbtilesOverlay"]).Layers[0];
+            mbTileslayer.StyleJsonUri = new Uri(@"./tmpRenderer.json", UriKind.Relative);
+            mbTileslayer.LoadStyleJson();
+            mapView1.Overlays["mbtilesOverlay"].Refresh();
+        }
+
+        private void btnReloadJson_Click(object sender, EventArgs e)
+        {
+            string jsonFile = File.ReadAllText(@".\SimpleRenderer.json");
+            tbxJson.Text = jsonFile;
+        }
+
+        private void mapView1_CurrentScaleChanged(object sender, CurrentScaleChangedMapViewEventArgs e)
+        {
+            int zoom = MBTilesGenerator.GetZoom(this.mapView1.ZoomLevelSet, e.NewScale);
+         
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"Current Zoom: {zoom}");
+
+            MBTiles.Tile tile = MBTilesGenerator.GetFirstTile(txtMbtilesFilePathname.Text, zoom);
+            if (tile != null)
+            {
+                foreach (MBTiles.TileLayer tileLayer in tile.Layers)
+                {
+                    sb.AppendLine($"Layer: {tileLayer.Name}");
+                    sb.AppendLine($"Version: {tileLayer.Version}");
+                    sb.AppendLine($"There are {tileLayer.Keys.Count} columns in the data");
+                    foreach (string key in tileLayer.Keys)
+                    {
+                        sb.AppendLine($"\t Column Name: {key}");
+                    }
+                }
+            }
+            txtMBTileInfo.Text = sb.ToString();
         }
     }
 }
