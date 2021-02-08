@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace MBTilesGenerator
+namespace MBTiles
 {
     [ProtoBuf.ProtoContract(Name = @"feature")]
     public sealed class TileFeature : ProtoBuf.IExtensible

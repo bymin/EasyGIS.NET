@@ -147,9 +147,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\VectorTileGenerator\VectorTileGenerator.csproj">
-      <Project>{3d938df3-e95c-46d8-9e4c-efacd4a4bbd7}</Project>
-      <Name>VectorTileGenerator</Name>
+    <ProjectReference Include="..\MBTiles\MBTiles.csproj">
+      <Project>{f3ce5b43-0d54-4a05-89d0-244c80629466}</Project>
+      <Name>MBTiles</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;net462</TargetFrameworks>
-    <AssemblyName>VectorTileGenerator</AssemblyName>
-    <RootNamespace>VectorTileGenerator</RootNamespace>
+    <AssemblyName>MBTiles</AssemblyName>
+    <RootNamespace>MBTiles</RootNamespace>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>egis.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>

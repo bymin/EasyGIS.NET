@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 
-namespace MBTilesGenerator
+namespace MBTiles
 {
     public class MetadataTable
     {

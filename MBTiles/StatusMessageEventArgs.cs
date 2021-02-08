@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MBTilesGenerator
+namespace MBTiles
 {
     public class StatusMessageEventArgs : EventArgs
     {

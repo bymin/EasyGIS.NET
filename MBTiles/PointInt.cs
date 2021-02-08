@@ -1,4 +1,4 @@
-﻿namespace MBTilesGenerator
+﻿namespace MBTiles
 {
     public struct PointInt
     {

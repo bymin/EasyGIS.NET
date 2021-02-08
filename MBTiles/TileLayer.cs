@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace MBTilesGenerator
+namespace MBTiles
 {
     [ProtoBuf.ProtoContract(Name = @"layer")]
     public sealed class TileLayer : ProtoBuf.IExtensible

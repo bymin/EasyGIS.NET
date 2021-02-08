@@ -1,4 +1,4 @@
-﻿using MBTilesGenerator;
+﻿using MBTiles;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -138,7 +138,7 @@ namespace ShpToMBTiles
             DateTime tick = DateTime.Now;
             ShapeFileFeatureSource.BuildIndexFile(this.txtInputShapeFile.Text, BuildIndexMode.DoNotRebuild);
 
-            await VectorTileGenerator.Process(this.txtInputShapeFile.Text, this.txtMbtilesFilePathname.Text, cancellationTokenSource.Token, (int)(nudStartZoom.Value), (int)(nudEndZoom.Value), 512, attributes);
+            await MBTilesGenerator.Process(this.txtInputShapeFile.Text, this.txtMbtilesFilePathname.Text, cancellationTokenSource.Token, (int)(nudStartZoom.Value), (int)(nudEndZoom.Value), 512, attributes);
             OutputMessage("Processing Vector tiles complete. Elapsed time:" + DateTime.Now.Subtract(tick) + "\n");
         }
 

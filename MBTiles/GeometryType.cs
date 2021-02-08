@@ -1,5 +1,5 @@
 ﻿
-namespace MBTilesGenerator
+namespace MBTiles
 {
     [ProtoBuf.ProtoContract(Name = @"GeomType")]
     public enum GeometryType

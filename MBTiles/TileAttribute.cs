@@ -1,4 +1,4 @@
-﻿namespace MBTilesGenerator
+﻿namespace MBTiles
 {
     [ProtoBuf.ProtoContract(Name = @"value")]
     public sealed class TileAttribute : ProtoBuf.IExtensible
