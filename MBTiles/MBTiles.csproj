@@ -28,9 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="GeoJSON.Net" Version="1.1.70" />
+    <PackageReference Include="GeoJSON.Net" Version="1.2.19" />
     <PackageReference Include="Microsoft.QualityTools.Testing.Fakes" Version="16.7.4-beta.20330.2" />
-    <PackageReference Include="protobuf-net" Version="2.4.6" />
+    <PackageReference Include="protobuf-net" Version="3.0.73" />
     <PackageReference Include="ThinkGeo.Core" Version="13.0.0-beta220" />
   </ItemGroup>
 
